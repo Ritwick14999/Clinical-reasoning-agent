@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Raw + derived data are never committed (licensing + size).
+# Only manifests, the hand-curated trap set, and manual labels are tracked.
+data/*
+!data/manifests/
+!data/trapset/
+!data/manual_labels/
+!data/.gitkeep
+
+# LLM response cache
+.cache/
