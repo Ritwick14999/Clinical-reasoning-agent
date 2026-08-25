@@ -66,21 +66,107 @@ def _uv() -> str | None:
     return shutil.which("uv")
 
 
+REQUIRED_PY = (3, 11)
+
+
+def _version_of(cmd: list[str]) -> tuple[int, int] | None:
+    """Return the (major, minor) an interpreter command reports, or None."""
+    try:
+        out = subprocess.run(
+            [*cmd, "-c", "import sys; print(sys.version_info[0], sys.version_info[1])"],
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    parts = out.stdout.split()
+    if len(parts) != 2 or not all(p.isdigit() for p in parts):
+        return None
+    return int(parts[0]), int(parts[1])
+
+
+def find_python311() -> list[str] | None:
+    """Locate a 3.11 interpreter without uv.
+
+    The project pins 3.11 because several pinned dependencies (torch and the
+    dense-retrieval stack in particular) have no wheels for newer versions.
+    Building the venv from whatever `python` happens to be on PATH produces a
+    venv that only fails later, at install time, so this runs first.
+    """
+    candidates: list[list[str]] = []
+    if IS_WINDOWS:
+        # The py launcher is the reliable way to reach a specific version on Windows.
+        candidates.append(["py", "-3.11"])
+    candidates += [["python3.11"], ["python3.11.exe"], [sys.executable]]
+    for cmd in candidates:
+        if shutil.which(cmd[0]) is None and cmd[0] != sys.executable:
+            continue
+        if _version_of(cmd) == REQUIRED_PY:
+            return cmd
+    return None
+
+
+UV_INSTALL_HINT = """
+Install uv -- it can fetch Python 3.11 for you, so nothing else needs installing:
+
+    pip install uv
+
+or the standalone installer:
+    Windows : powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    macOS/Linux: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+Then re-run:  python tasks.py setup
+
+Alternatively, install Python 3.11 yourself from https://www.python.org/downloads/release/python-3119/
+(tick "Add python.exe to PATH" on Windows) and re-run this command."""
+
+
+def _existing_venv_version() -> tuple[int, int] | None:
+    return _version_of([str(VENV_PY)]) if VENV_PY.exists() else None
+
+
 @task("Create .venv and install the package (add --extras dense,demo for optional groups)")
 def setup(args: argparse.Namespace) -> None:
     extras = f"[{args.extras}]" if args.extras else "[dev]"
+
+    existing = _existing_venv_version()
+    if existing is not None and existing != REQUIRED_PY and not args.force:
+        sys.exit(
+            f"{VENV} already exists but runs Python {existing[0]}.{existing[1]}, "
+            f"and this project needs {REQUIRED_PY[0]}.{REQUIRED_PY[1]}.\n"
+            f"Re-run with --force to delete and rebuild it:\n"
+            f"    python tasks.py setup --force"
+        )
+    if args.force and VENV.exists():
+        print(f"Removing {VENV}")
+        shutil.rmtree(VENV, ignore_errors=True)
+
     uv = _uv()
     if uv:
+        # uv downloads a matching interpreter when the system has none.
         run([uv, "venv", "--python", "3.11", str(VENV)])
         run([uv, "pip", "install", "--python", str(VENV_PY), "-e", f".{extras}"])
     else:
-        print("uv not found; falling back to venv + pip (slower).")
-        run([sys.executable, "-m", "venv", str(VENV)])
+        base = find_python311()
+        if base is None:
+            running = f"{sys.version_info[0]}.{sys.version_info[1]}"
+            sys.exit(
+                f"No Python {REQUIRED_PY[0]}.{REQUIRED_PY[1]} interpreter found "
+                f"(you are running {running}), and uv is not installed.\n"
+                f"{UV_INSTALL_HINT}"
+            )
+        print(f"uv not found; building the venv with {' '.join(base)} (slower than uv).")
+        run([*base, "-m", "venv", str(VENV)])
         run([str(VENV_PY), "-m", "pip", "install", "--upgrade", "pip"])
         run([str(VENV_PY), "-m", "pip", "install", "-e", f".{extras}"])
+
+    built = _existing_venv_version()
+    if built != REQUIRED_PY:
+        sys.exit(f"Unexpected: the new venv reports Python {built}. Expected {REQUIRED_PY}.")
+
     print("\nInstalled. Optional extras:")
     print("  python tasks.py setup --extras dev,dense   # dense retrieval + local NLI entailment")
     print("  python tasks.py setup --extras dev,demo    # Gradio demo")
+    print("\nNext:  python tasks.py doctor")
 
 
 @task("Run the test suite (no network, no credentials)")
@@ -116,7 +202,8 @@ def doctor(args: argparse.Namespace) -> None:
         )
         print(f"Project virtualenv : {out.stdout.strip() or out.stderr.strip()} at {VENV_PY}")
         if "3.11" not in (out.stdout + out.stderr):
-            print("  ! The project pins Python 3.11 (>=3.11,<3.12). Recreate the venv with 3.11.")
+            print("  ! The project pins Python 3.11 (>=3.11,<3.12): several pinned deps have no")
+            print("    wheels for newer versions. Rebuild with: python tasks.py setup --force")
             ok = False
     else:
         print("Project virtualenv : MISSING -- run `python tasks.py setup`")
@@ -153,6 +240,9 @@ def main() -> None:
     )
     parser.add_argument("task", nargs="?", choices=sorted(TASKS), help="task to run")
     parser.add_argument("--extras", default="", help="setup only: extras, e.g. dev,dense")
+    parser.add_argument(
+        "--force", action="store_true", help="setup only: delete and rebuild an existing .venv"
+    )
     parser.add_argument("rest", nargs=argparse.REMAINDER, help="extra args passed through")
     args = parser.parse_args()
 
