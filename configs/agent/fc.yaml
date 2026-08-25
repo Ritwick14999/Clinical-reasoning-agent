@@ -1,0 +1,7 @@
+# Default agent: native function calling, 5 tool calls, greedy decoding.
+mode: function_calling
+tool_budget: 5
+max_steps: 8
+temperature: 0.0
+seed: 12345
+allow_repair: true

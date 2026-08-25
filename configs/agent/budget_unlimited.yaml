@@ -1,0 +1,7 @@
+# "Unlimited" in practice means bounded by max_steps, which is what stops a
+# runaway loop. Recorded honestly as a large finite budget.
+mode: function_calling
+tool_budget: 50
+max_steps: 20
+temperature: 0.0
+seed: 12345

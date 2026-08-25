@@ -1,0 +1,8 @@
+# Deterministic, credential-free. Powers CI, the offline demo and smoke runs.
+# Never reported as a result.
+provider: mock
+model_id: mock-heuristic
+use_cache: false
+mock:
+  use_tools: true
+  n_tool_calls: 1

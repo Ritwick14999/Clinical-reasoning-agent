@@ -1,0 +1,6 @@
+provider: anthropic
+model_id: claude-sonnet-5
+api_key_env: ANTHROPIC_API_KEY
+max_tokens: 1500
+use_cache: true
+cache_dir: .cache/llm

@@ -1,0 +1,5 @@
+mode: function_calling
+tool_budget: 2
+max_steps: 5
+temperature: 0.0
+seed: 12345

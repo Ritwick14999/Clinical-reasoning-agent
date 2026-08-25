@@ -1,0 +1,7 @@
+# Ablation: no tools at all. Isolates the effect of grounding on hallucination.
+mode: function_calling
+tool_budget: 0
+max_steps: 3
+temperature: 0.0
+seed: 12345
+closed_book: true

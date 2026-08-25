@@ -1,0 +1,4 @@
+backend: bm25
+index_dir: data/index/bm25_pqal
+corpus: data/processed/corpus_pqal.jsonl
+default_k: 5

@@ -1,0 +1,8 @@
+# Open-weight half of the model comparison. Run `ollama serve` and
+# `ollama pull qwen3:8b` first; Ollama exposes an OpenAI-compatible endpoint.
+provider: openai_compat
+model_id: qwen3:8b
+base_url: http://localhost:11434/v1
+max_tokens: 1500
+use_cache: true
+cache_dir: .cache/llm

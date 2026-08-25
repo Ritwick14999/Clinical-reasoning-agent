@@ -1,0 +1,5 @@
+backend: dense
+index_dir: data/index/dense_pqal
+corpus: data/processed/corpus_pqal.jsonl
+default_k: 5
+embedding_model: sentence-transformers/all-MiniLM-L6-v2

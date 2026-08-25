@@ -1,0 +1,10 @@
+# Credential-free end-to-end smoke run. Exercises every stage of the pipeline;
+# produces no reportable numbers.
+experiment_id: smoke_mock
+model: mock
+agent: fc
+retrieval: bm25
+datasets: [pubmedqa, medqa]
+split: dev
+limit: 20
+notes: "Mock model. Pipeline check only -- not a result."
