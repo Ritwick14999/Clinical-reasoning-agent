@@ -1,5 +1,9 @@
-# Open-weight half of the model comparison. Run `ollama serve` and
-# `ollama pull qwen3:8b` first; Ollama exposes an OpenAI-compatible endpoint.
+# Primary open-weight model.
+#   ollama pull qwen3:8b
+# Qwen3 supports native tool calling through Ollama's OpenAI-compatible API.
+# NOTE: the agent loop implements native function calling only. A model without
+# tool-calling support will never call a tool and will look, misleadingly, like
+# a closed-book run.
 provider: openai_compat
 model_id: qwen3:8b
 base_url: http://localhost:11434/v1

@@ -1,0 +1,9 @@
+# Second open-weight model, for the cross-model comparison.
+#   ollama pull llama3.1:8b
+# Llama 3.1 supports native tool calling through Ollama's OpenAI-compatible API.
+provider: openai_compat
+model_id: llama3.1:8b
+base_url: http://localhost:11434/v1
+max_tokens: 1500
+use_cache: true
+cache_dir: .cache/llm

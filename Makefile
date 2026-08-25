@@ -1,4 +1,7 @@
-# Reproducibility entry points.
+# Reproducibility entry points (POSIX). On Windows use the equivalent
+# cross-platform runner instead -- `make` and .venv/bin/python do not exist there:
+#
+#   python tasks.py setup | test | lint | demo | doctor
 #
 #   make setup      install into .venv (Python 3.11)
 #   make test       unit + end-to-end tests (no network, no credentials)
@@ -13,7 +16,7 @@
 PY := .venv/bin/python
 PIP := uv pip
 
-.PHONY: setup test lint fmt demo clean
+.PHONY: setup test lint fmt demo doctor clean
 
 setup:
 	uv venv --python 3.11 .venv
@@ -33,6 +36,9 @@ fmt:
 
 demo:
 	$(PY) scripts/demo_episode.py
+
+doctor:
+	$(PY) tasks.py doctor
 
 clean:
 	rm -rf .pytest_cache .ruff_cache **/__pycache__

@@ -350,16 +350,36 @@ Without this the framework is unfalsifiable, so it is not optional.
 
 ## 9. Models
 
-Provider-agnostic by construction (`LLMClient` protocol). Planned runs:
+Provider-agnostic by construction (`LLMClient` protocol).
 
-- **API model** — Claude (Sonnet-class and/or Haiku-class), native tool use.
-- **Open-weight model** — Qwen/Llama-class 7–8B via Ollama or vLLM through the
-  OpenAI-compatible adapter.
-- **`MockClient`** — deterministic scripted responses; powers CI, the golden-trace
-  tests, and a key-free demo. Not a result, never reported as one.
+**Decision (2026-08-25): two open-weight models via Ollama, no paid API.**
 
-**Neither real model can be run in this environment** (no key, blocked model
-registries, no GPU). See §11 for exactly what that means for delivery.
+- **`qwen3:8b`** and **`llama3.1:8b`**, both through the OpenAI-compatible
+  adapter. Both support native tool calling, which is required: the loop
+  implements function calling only, so a model without tool support would
+  produce silently closed-book traces rather than an obvious error.
+- **`MockClient`** — deterministic scripted responses; powers CI, the
+  golden-trace tests, and a credential-free demo. Not a result, never reported
+  as one.
+- The Anthropic adapter stays in the codebase and tested, so a frontier-model
+  run can be added later without touching the pipeline. Because eval is a pure
+  function of traces, adding a third model costs one rollout and no re-analysis.
+
+**Stated limitation.** Comparing two 8B open-weight models is a weaker
+generalisation claim than open-weight versus frontier. It still answers the
+question the comparison exists to answer — whether a failure-mode profile is
+one model's quirk — but it cannot speak to how the profile changes with
+capability. The write-up says so explicitly rather than implying broader
+coverage.
+
+**Sampling.** Headline runs use a stratified 300 questions per dataset rather
+than the full 1 773-question test set: local 8B inference over the full set
+takes many hours per model, and 300 supports the failure-mode breakdown with
+bootstrap CIs. The sample size is a config field, the sampling is seeded, and
+the reported numbers carry CIs that reflect it.
+
+**Neither model can be run in the build environment** (blocked model
+registries, no GPU); rollouts run on the user's Windows + GPU machine. See §11.
 
 ---
 
@@ -387,12 +407,15 @@ registries, no GPU). See §11 for exactly what that means for delivery.
 | 3 | Eval framework: claims, entailment (judge + NLI), failure modes, metrics, plots, validation harness | **Code yes; NLI weights and judge calls need egress/keys** |
 | 4 | Ablations, README, write-up, Gradio demo | Code yes; real numbers need a rollout run |
 
-**The gap is real and I will not paper over it:** without an LLM key or a local
-model, this environment can produce a complete, tested, reproducible *pipeline*
-with mock-generated traces, but it cannot produce real headline numbers. The
-`results/` tables would be structurally correct and empirically meaningless, and
-they will be clearly labelled as such until a real run replaces them.
+**The gap is real and I will not paper over it:** this environment can produce a
+complete, tested, reproducible *pipeline* with mock-generated traces, but it
+cannot produce real headline numbers. Any `results/` table built from mock
+traces is structurally correct and empirically meaningless, and is labelled as
+such until a real run replaces it.
 
-Two ways to close it, your call (§ questions below): supply an API key to this
-session, or I deliver the pipeline plus a one-command `make rollouts` you run on
-a machine with egress, and we then finish the analysis and write-up together.
+**Agreed resolution (2026-08-25):** rollouts run on the user's Windows + GPU
+machine against local Ollama. This repo therefore ships a cross-platform task
+runner (`tasks.py`) alongside the Makefile, since `make` and the POSIX
+`.venv/bin/python` path do not exist on Windows. `python tasks.py doctor`
+checks the Python version, the virtualenv and whether Ollama is serving the
+required models.

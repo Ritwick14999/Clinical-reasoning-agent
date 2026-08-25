@@ -1,0 +1,11 @@
+# Headline run, model 2 of 2. Requires Ollama serving llama3.1:8b.
+# Identical to headline_qwen3 apart from the model, so any difference in the
+# failure-mode breakdown is attributable to the model.
+experiment_id: headline_llama31
+model: llama31_8b_ollama
+agent: fc
+retrieval: bm25
+datasets: [pubmedqa, medqa]
+split: test
+limit: 300
+notes: "Open-weight headline run. Report with bootstrap CIs."
