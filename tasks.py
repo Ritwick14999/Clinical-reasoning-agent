@@ -124,6 +124,19 @@ def _existing_venv_version() -> tuple[int, int] | None:
     return _version_of([str(VENV_PY)]) if VENV_PY.exists() else None
 
 
+def _running_inside_project_venv() -> bool:
+    """True when this script is itself running on the project's virtualenv.
+
+    Deleting that venv would mean deleting the running interpreter, which
+    Windows refuses outright (the .exe is locked) and which leaves a
+    half-removed directory behind on any platform.
+    """
+    try:
+        return Path(sys.executable).resolve().is_relative_to(VENV.resolve())
+    except (OSError, ValueError):
+        return False
+
+
 @task("Create .venv and install the package (add --extras dense,demo for optional groups)")
 def setup(args: argparse.Namespace) -> None:
     extras = f"[{args.extras}]" if args.extras else "[dev]"
@@ -137,8 +150,21 @@ def setup(args: argparse.Namespace) -> None:
             f"    python tasks.py setup --force"
         )
     if args.force and VENV.exists():
+        if _running_inside_project_venv():
+            sys.exit(
+                "Cannot rebuild .venv while running from inside it "
+                f"({sys.executable}).\n"
+                "Deactivate it first, then re-run:\n"
+                "    deactivate\n"
+                "    python tasks.py setup --force"
+            )
         print(f"Removing {VENV}")
         shutil.rmtree(VENV, ignore_errors=True)
+        if VENV.exists():
+            sys.exit(
+                f"Could not fully remove {VENV} -- something is still using it.\n"
+                "Close any terminal or editor using that environment and try again."
+            )
 
     uv = _uv()
     if uv:
@@ -194,7 +220,10 @@ def doctor(args: argparse.Namespace) -> None:
     ok = True
 
     major, minor = sys.version_info[:2]
-    print(f"System Python      : {major}.{minor} ({sys.executable})")
+    where = " [this is the project venv -- run `deactivate` to see your system Python]" if (
+        _running_inside_project_venv()
+    ) else ""
+    print(f"Running Python     : {major}.{minor} ({sys.executable}){where}")
 
     if VENV_PY.exists():
         out = subprocess.run(
@@ -243,8 +272,11 @@ def main() -> None:
     parser.add_argument(
         "--force", action="store_true", help="setup only: delete and rebuild an existing .venv"
     )
-    parser.add_argument("rest", nargs=argparse.REMAINDER, help="extra args passed through")
-    args = parser.parse_args()
+    # Not argparse.REMAINDER: as a positional it swallows everything after the
+    # task name, declared flags included, so `setup --force` silently lost the
+    # flag. parse_known_args keeps declared flags and passes the rest through.
+    args, rest = parser.parse_known_args()
+    args.rest = rest
 
     if not args.task:
         print(__doc__)
