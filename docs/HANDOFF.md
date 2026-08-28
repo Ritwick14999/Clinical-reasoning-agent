@@ -146,6 +146,46 @@ have recorded.**
   *and* human-vs-human (see decision 5).
 - `report.py` + `viz/plots.py` -- tables and the stacked failure-mode bar chart.
 
+## What the pieces are for (the goal, stated plainly)
+
+Two artefacts get produced, and they serve different purposes. Confusing them
+is the most common way a project like this ends up unfalsifiable.
+
+**The ~40 hand labels are not a result. They are a licence.** Their only job is
+to establish whether the automatic failure-mode classifier can be trusted:
+
+```
+  40 traces labelled by hand  ─┐
+                                ├─► Cohen's kappa ─► classifier trustworthy?
+  same 40 labelled by the code ─┘        │
+                                         ├─ high: apply the classifier to all traces
+                                         └─ low : the classifier is wrong. Fix it and
+                                                  re-run over the SAME traces -- free,
+                                                  no GPU, no re-rollout. This is exactly
+                                                  what the rollout/eval split buys.
+```
+
+**The model traces are the results.** Once the classifier is validated, run it
+over all of them (300 questions x 2 datasets x 2 models = 1 200 traces) to produce:
+
+- accuracy per model and dataset;
+- the failure-mode breakdown -- the headline stacked bar chart;
+- hallucination rate and grounding rate (from the per-trace flags, not the label);
+- qwen3 vs llama3.1, to show whether a profile is one model's quirk;
+- tools vs closed-book, to test whether grounding measurably reduces hallucination.
+
+**The claim the project exists to support** has this shape, with the real numbers
+deciding the wording: accuracy is X%, but N% of errors are retrieval failures
+rather than reasoning failures -- the model reasons adequately over evidence it
+never received -- and M% of *correct* answers contain at least one claim
+unsupported by any retrieved evidence. Accuracy benchmarks score those as wins.
+An agent can be right for the wrong reasons, and accuracy cannot see it.
+
+**Report honestly.** Kappa may come back low; that is a finding about the
+instrument, and fixing it is cheap. The cross-model comparison may be null. At
+300 questions per dataset the confidence intervals are wide -- do not claim a
+difference the CIs do not support.
+
 ## Phase 4 -- ablations, demo, write-up
 
 - Ablations: tools vs closed-book (`configs/agent/closed_book.yaml` exists),
