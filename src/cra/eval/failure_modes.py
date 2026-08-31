@@ -34,7 +34,7 @@ rate, exactly as docs/DESIGN.md Sec 6 requires.
 from __future__ import annotations
 
 from cra.data.expected_tools import ALWAYS_PERMITTED, resolve_expected_tools
-from cra.eval.claims import extract_claims
+from cra.eval.claims import extract_claims, strip_citation_framing
 from cra.eval.entailment.base import EntailmentChecker
 from cra.eval.records import ClaimRecord, FailureMode, ToolUseAssessment, TraceEvalRecord
 from cra.types import Trace
@@ -90,10 +90,21 @@ def _grade_claims(
     if entailment is None:
         return [ClaimRecord(text=t) for t in texts], None
 
-    claims = [
-        ClaimRecord(text=t, label=entailment.check(t, evidence_texts), checker=entailment.name)
-        for t in texts
-    ]
+    # The citation wrapper is stripped before the claim becomes a hypothesis:
+    # asking whether an abstract entails "E1 states that X" is structurally
+    # unanswerable, and penalised the agent for citing as instructed. See
+    # cra.eval.claims for the measurement that motivated this.
+    claims = []
+    for t in texts:
+        hypothesis = strip_citation_framing(t)
+        claims.append(
+            ClaimRecord(
+                text=t,
+                tested_text=hypothesis if hypothesis != t else None,
+                label=entailment.check(hypothesis, evidence_texts),
+                checker=entailment.name,
+            )
+        )
     hallucinated = any(c.label in ("contradicted", "not_addressed") for c in claims)
     return claims, hallucinated
 

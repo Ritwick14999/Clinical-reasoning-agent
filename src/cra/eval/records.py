@@ -44,9 +44,18 @@ TOOL_MISUSE_REASONS = (
 
 
 class ClaimRecord(BaseModel):
-    text: str
+    text: str  # the sentence as the agent wrote it
+    # The proposition actually put to the entailment checker: the same sentence
+    # with its citation wrapper removed ("E1 states that X" -> "X"). Kept
+    # separately so a reader can see what was tested, and so reports can show
+    # the agent's own words. None when it is identical to ``text``.
+    tested_text: str | None = None
     label: EntailmentLabel | None = None  # None = not graded (no checker run)
     checker: str | None = None  # e.g. "nli", "judge:qwen3:8b"
+
+    @property
+    def hypothesis(self) -> str:
+        return self.tested_text or self.text
 
 
 class ToolUseAssessment(BaseModel):
