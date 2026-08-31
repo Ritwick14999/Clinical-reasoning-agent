@@ -15,7 +15,9 @@ from typing import Any, Protocol, runtime_checkable
 from cra.tools.base import EvidenceDraft, ToolResult
 
 MAX_K = 10
-SNIPPET_CHARS = 1400
+# 1400 -> 1000: measured to overflow an 8192 num_ctx at k=5 over a 5-search
+# episode. See docs/HANDOFF.md, "The context-overflow hazard".
+SNIPPET_CHARS = 1000
 
 
 @dataclass
