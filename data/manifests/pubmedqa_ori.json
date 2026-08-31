@@ -1,0 +1,8 @@
+{
+  "name": "pubmedqa_ori",
+  "url": "https://raw.githubusercontent.com/pubmedqa/pubmedqa/master/data/ori_pqal.json",
+  "dest": "data\\raw\\pubmedqa\\ori_pqal.json",
+  "sha256": "8b3276be8942ebbd77f3ddcda12c1749bf0e490045a736fd8438ee40cf37a41d",
+  "bytes": 2584787,
+  "downloaded_at": 1787862622.8709545
+}

@@ -1,0 +1,8 @@
+{
+  "name": "mirage_benchmark",
+  "url": "https://raw.githubusercontent.com/Teddy-XiongGZ/MIRAGE/main/benchmark.json",
+  "dest": "data\\raw\\mirage\\benchmark.json",
+  "sha256": "6f7f08c64cd2efe02a5d0c247229813c90db345d9dd6e3a451b5d24146d0f8fa",
+  "bytes": 4296735,
+  "downloaded_at": 1787862627.950611
+}

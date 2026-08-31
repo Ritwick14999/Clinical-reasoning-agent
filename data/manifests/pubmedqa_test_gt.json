@@ -1,0 +1,8 @@
+{
+  "name": "pubmedqa_test_gt",
+  "url": "https://raw.githubusercontent.com/pubmedqa/pubmedqa/master/data/test_ground_truth.json",
+  "dest": "data\\raw\\pubmedqa\\test_ground_truth.json",
+  "sha256": "939fe566f09017d13b1ca64d2ddfee0bc2374b366048152997669cccedc44d51",
+  "bytes": 11414,
+  "downloaded_at": 1787862623.2540019
+}
