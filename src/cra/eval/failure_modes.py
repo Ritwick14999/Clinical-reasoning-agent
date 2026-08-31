@@ -33,13 +33,14 @@ rate, exactly as docs/DESIGN.md Sec 6 requires.
 
 from __future__ import annotations
 
+from cra.data.expected_tools import ALWAYS_PERMITTED, resolve_expected_tools
 from cra.eval.claims import extract_claims
 from cra.eval.entailment.base import EntailmentChecker
 from cra.eval.records import ClaimRecord, FailureMode, ToolUseAssessment, TraceEvalRecord
 from cra.types import Trace
 
 
-def assess_tool_use(trace: Trace) -> ToolUseAssessment:
+def assess_tool_use(trace: Trace, expected_fn=resolve_expected_tools) -> ToolUseAssessment:
     """Compares actual tool use against the ``expected_tools`` oracle.
 
     The oracle is a keyword-regex stand-in for "which tools this case
@@ -47,14 +48,15 @@ def assess_tool_use(trace: Trace) -> ToolUseAssessment:
     ``reasons`` as evidence for an audit, not as ground truth about the
     agent's competence.
     """
-    expected = list(trace.question.expected_tools)
+    expected = list(expected_fn(trace.question))
     used = trace.tool_names
     expected_set, used_set = set(expected), set(used)
     reasons: list[str] = []
 
     if expected_set - used_set:
         reasons.append("required_tool_never_called")
-    if used_set - expected_set and expected_set:
+    # Retrieval is always permitted, so it can never make a call "unnecessary".
+    if (used_set - expected_set) - ALWAYS_PERMITTED and expected_set:
         reasons.append("unnecessary_call")
     if expected_set and used_set and not (used_set & expected_set):
         reasons.append("wrong_tool")
@@ -96,8 +98,12 @@ def _grade_claims(
     return claims, hallucinated
 
 
-def classify_trace(trace: Trace, entailment: EntailmentChecker | None = None) -> TraceEvalRecord:
-    tool_use = assess_tool_use(trace)
+def classify_trace(
+    trace: Trace,
+    entailment: EntailmentChecker | None = None,
+    expected_fn=resolve_expected_tools,
+) -> TraceEvalRecord:
+    tool_use = assess_tool_use(trace, expected_fn=expected_fn)
     hit = retrieval_hit(trace)
     gold_available = trace.question.has_gold_source
 

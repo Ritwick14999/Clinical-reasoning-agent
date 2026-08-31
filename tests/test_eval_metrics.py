@@ -5,6 +5,12 @@ from cra.eval.tool_metrics import compute_tool_metrics
 from cra.types import Evidence, Question, ToolCallRecord, Trace
 
 
+def stored_expected(question):
+    """Read the stored annotation, bypassing the oracle: these tests exercise the
+    metric arithmetic with synthetic tool names the keyword oracle never emits."""
+    return list(question.expected_tools)
+
+
 def _trace(gold_source_ids=None, evidence=None, expected_tools=None, tool_calls=None, dataset="pubmedqa"):
     q = Question(
         qid="q", dataset=dataset, split="dev", question="Q?", gold_answer="yes",
@@ -46,19 +52,23 @@ def test_retrieval_metrics_rank_two_halves_mrr():
 
 
 def test_tool_metrics_no_expected_tools():
-    m = compute_tool_metrics([_trace()])
+    m = compute_tool_metrics([_trace()], expected_fn=stored_expected)
     assert m.n_traces_with_expected_tools == 0
     assert m.precision is None
 
 
 def test_tool_metrics_perfect_precision_recall():
     tc = ToolCallRecord(index=0, step=0, name="calc_a", args={}, ok=True, output="x")
-    m = compute_tool_metrics([_trace(expected_tools=["calc_a"], tool_calls=[tc])])
+    m = compute_tool_metrics(
+        [_trace(expected_tools=["calc_a"], tool_calls=[tc])], expected_fn=stored_expected
+    )
     assert m.precision == 1.0
     assert m.recall == 1.0
 
 
 def test_tool_metrics_never_called_zero_recall_none_precision():
-    m = compute_tool_metrics([_trace(expected_tools=["calc_a"], tool_calls=[])])
+    m = compute_tool_metrics(
+        [_trace(expected_tools=["calc_a"], tool_calls=[])], expected_fn=stored_expected
+    )
     assert m.recall == 0.0
     assert m.precision is None  # no calls made at all -- precision is undefined, not 0

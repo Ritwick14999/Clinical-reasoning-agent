@@ -61,7 +61,7 @@ def load_pubmedqa(
                 question=question_text,
                 gold_answer=gold,
                 gold_source_ids=[str(pmid)],
-                expected_tools=expected_tools_for(question_text),
+                expected_tools=expected_tools_for(question_text, dataset="pubmedqa"),
                 metadata={"year": item.get("YEAR"), "meshes": item.get("MESHES", [])},
             )
         )

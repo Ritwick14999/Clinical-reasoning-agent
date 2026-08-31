@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from cra.data.expected_tools import ALWAYS_PERMITTED, resolve_expected_tools
 from cra.types import Trace
 
 
@@ -22,16 +23,18 @@ class ToolMetrics:
     recall: float | None
 
 
-def compute_tool_metrics(traces: list[Trace]) -> ToolMetrics:
-    graded = [t for t in traces if t.question.expected_tools]
+def compute_tool_metrics(traces: list[Trace], expected_fn=resolve_expected_tools) -> ToolMetrics:
+    graded = [t for t in traces if expected_fn(t.question)]
     if not graded:
         return ToolMetrics(n_traces_with_expected_tools=0, precision=None, recall=None)
 
     precisions: list[float] = []
     recalls: list[float] = []
     for t in graded:
-        expected = set(t.question.expected_tools)
-        used = set(t.tool_names)
+        expected = set(expected_fn(t.question))
+        # Always-permitted tools (retrieval) are excluded from the precision
+        # denominator: calling one is instructed behaviour, not imprecision.
+        used = set(t.tool_names) - (ALWAYS_PERMITTED - expected)
         if used:
             precisions.append(len(used & expected) / len(used))
         recalls.append(len(used & expected) / len(expected))

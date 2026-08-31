@@ -71,10 +71,17 @@ def render_markdown_table(summaries: list[DatasetSummary]) -> str:
     for s in summaries:
         acc = f"{s.accuracy.point:.1%} [{s.accuracy.lo:.1%}, {s.accuracy.hi:.1%}]"
         hit = f"{s.retrieval.hit_at_k:.1%}" if s.retrieval.hit_at_k is not None else "n/a"
+        # Always show the denominator: a rate over one or two gradable traces
+        # reads as a catastrophic result when it is really an absent oracle.
         if s.tools.precision is not None:
-            pr = f"{s.tools.precision:.1%} / {s.tools.recall:.1%}"
+            pr = (
+                f"{s.tools.precision:.1%} / {s.tools.recall:.1%} "
+                f"(n={s.tools.n_traces_with_expected_tools})"
+            )
+        elif s.tools.n_traces_with_expected_tools:
+            pr = f"n/a (n={s.tools.n_traces_with_expected_tools}, no tools used)"
         else:
-            pr = "n/a"
+            pr = "n/a (no expectations)"
         lines.append(
             f"| {s.experiment_id} | {s.model_id} | {s.dataset} | {s.n} | {s.n_answered} "
             f"| {acc} | {hit} | {pr} |"

@@ -57,9 +57,26 @@ def _mentioned_drugs(text: str) -> set[str]:
     return {generic for name, generic in _DRUG_VOCAB.items() if _DRUG_PATTERNS[name].search(text)}
 
 
-def expected_tools_for(text: str) -> list[str]:
-    """Deterministic oracle from question text alone. See module docstring."""
+# Retrieval is instructed unconditionally by the system prompt ("search the
+# literature before making a factual claim you cannot support from the question
+# itself"), so calling it is never evidence of misuse. It is excluded from the
+# "unnecessary call" test and from the tool-precision denominator; otherwise the
+# agent is penalised for following its own instructions.
+ALWAYS_PERMITTED = frozenset({"search_literature"})
+
+
+def expected_tools_for(text: str, dataset: str | None = None) -> list[str]:
+    """Deterministic oracle. See module docstring.
+
+    ``dataset`` adds dataset-level expectations that keyword rules cannot see.
+    PubMedQA asks whether the published literature supports a claim, and ships
+    a specific gold abstract, so answering it without retrieving anything is a
+    tool failure by construction. Without this, 299 of 300 PubMedQA questions
+    carried no expectation at all and the tool metrics there were vacuous.
+    """
     tools: list[str] = []
+    if dataset == "pubmedqa":
+        tools.append("search_literature")
 
     if _AF_RE.search(text):
         tools.append("calc_cha2ds2_vasc")
@@ -77,3 +94,19 @@ def expected_tools_for(text: str) -> list[str]:
         tools.append("check_drug_interactions")
 
     return tools
+
+
+def resolve_expected_tools(question) -> list[str]:
+    """The oracle's verdict for a question, recomputed at evaluation time.
+
+    Traces record whatever the oracle said when the rollout ran, but the oracle
+    is a deterministic annotation over the question text, not something the
+    model produced. Recomputing it here means an oracle fix applies to every
+    committed trace immediately, with no re-rollout -- the same property that
+    lets the rest of the evaluation be improved and re-run for free.
+
+    This does not violate the "no model calls in eval" rule: it is a keyword
+    regex over text already inlined in the trace, not a re-derivation of
+    anything the model did.
+    """
+    return expected_tools_for(question.question, dataset=question.dataset)
