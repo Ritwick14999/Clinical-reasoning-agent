@@ -15,7 +15,7 @@ from cra.retrieval.corpus import CorpusDoc, read_corpus_jsonl
 from cra.tools.retrieval import RetrievedPassage
 
 _MISSING_EXTRA = (
-    "Dense retrieval requires the 'dense' extra: pip install -e '.[dense]' "
+    "Dense retrieval requires the 'dense' extra. Install with: python tasks.py setup --extras dev,dense (not a bare pip -- it may belong to a different Python, and a uv-created venv has no pip) "
     "(pulls sentence-transformers, faiss-cpu and torch)."
 )
 

@@ -34,7 +34,7 @@ class AnthropicClient:
         except ImportError as exc:  # pragma: no cover - depends on optional extra
             raise ImportError(
                 "The anthropic package is required for this provider. "
-                "Install the optional extra: pip install -e '.[api]'"
+                "Install with: python tasks.py setup --extras dev,api (not a bare pip -- it may belong to a different Python, and a uv-created venv has no pip)"
             ) from exc
 
         key = api_key or os.environ.get("ANTHROPIC_API_KEY")

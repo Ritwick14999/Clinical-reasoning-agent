@@ -19,7 +19,7 @@ from __future__ import annotations
 from cra.eval.entailment.base import EntailmentLabel
 
 _MISSING_EXTRA = (
-    "NLI entailment requires the 'dense' extra: pip install -e '.[dense]' "
+    "NLI entailment requires the 'dense' extra. Install with: python tasks.py setup --extras dev,dense (not a bare pip -- it may belong to a different Python, and a uv-created venv has no pip) "
     "(pulls transformers and torch)."
 )
 
