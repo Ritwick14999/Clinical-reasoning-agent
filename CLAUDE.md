@@ -37,8 +37,9 @@ src/cra/
   llm/              LLMClient protocol; anthropic, openai_compat (Ollama/vLLM), mocks, cache
   agent/            loop.py (controller), prompts.py, parsing.py
   tools/            registry.py, retrieval.py, drugs.py, units.py, calculators/
-  retrieval/        BM25 / dense index            [Phase 2 - stub]
-  data/             dataset download + splits     [Phase 2 - stub]
+  retrieval/        BM25 (default) + dense (optional, `dense` extra) over the PubMedQA corpus
+  data/             download.py, pubmedqa.py, medqa.py, splits.py, expected_tools.py, trapset.py
+  rollout.py, cli.py  the rollout runner: `python tasks.py rollout -- --config <name>`
   eval/             the evaluation framework      [Phase 3 - stub]
 configs/            model/ agent/ retrieval/ experiments/  (composable YAML)
 results/traces/     committed traces -- the reproducibility anchor
@@ -85,6 +86,10 @@ python tasks.py doctor      # checks Python 3.11, venv, Ollama models
 python tasks.py test
 python tasks.py demo        # one episode, mock model, no credentials
 python tasks.py lint
+python tasks.py data        # download PubMedQA + MIRAGE into data/raw/
+python tasks.py index       # build the BM25 corpus from downloaded data
+python tasks.py rollout -- --config smoke_mock       # credential-free pipeline check
+python tasks.py rollout -- --config headline_qwen3 --dry-run   # preflight only
 ```
 
 POSIX: the `Makefile` has the same targets.
