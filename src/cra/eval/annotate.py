@@ -78,7 +78,13 @@ def write_annotation_template(
         for r in records:
             trace = traces_by_key.get((r.dataset, r.qid))
             fh.write(f"### trace_id={r.trace_id}\n")
-            fh.write(render_trace(trace) if trace is not None else "(trace not found)\n")
+            # full=True: the annotator must read the same evidence text the
+            # entailment checker does, or the kappa measures the missing text.
+            fh.write(
+                render_trace(trace, full=True)
+                if trace is not None
+                else "(trace not found)\n"
+            )
             fh.write("\n\n")
 
     with out_path.open("w", newline="", encoding="utf-8") as fh:

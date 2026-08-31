@@ -59,9 +59,25 @@ def read_trace_dir(path: str | Path, pattern: str = "*.jsonl*") -> list[Trace]:
     return [t for f in files for t in read_traces(f)]
 
 
-def render_trace(trace: Trace, width: int = 88, show_evidence: bool = True) -> str:
-    """A readable transcript. Used by the CLI and the demo."""
+def render_trace(
+    trace: Trace, width: int = 88, show_evidence: bool = True, full: bool = False
+) -> str:
+    """A readable transcript. Used by the CLI, the demo, and human annotation.
+
+    ``full=True`` disables every length cap. Annotation transcripts MUST use it:
+    a human judging whether a claim is entailed needs the same premise the
+    automatic checker reads. Scoring a 220-character fragment against a
+    classifier that sees the whole passage does not measure agreement between
+    annotator and classifier, it measures the missing text -- and would depress
+    Cohen's kappa for a reason that says nothing about the classifier.
+    """
     rule = "-" * width
+
+    def clip(text: str, limit: int) -> str:
+        text = text.strip()
+        if full or len(text) <= limit:
+            return text
+        return text[:limit] + "..."
     out: list[str] = [
         rule,
         f"{trace.question.dataset}/{trace.question.qid}  [{trace.question.split}]  "
@@ -77,17 +93,17 @@ def render_trace(trace: Trace, width: int = 88, show_evidence: bool = True) -> s
         label = {"model": "MODEL", "repair": "REPAIR", "forced_final": "MODEL (forced)"}[step.kind]
         out.append(f"[step {step.index}] {label}")
         if step.thinking:
-            out.append(f"  thinking: {step.thinking.strip()[:400]}")
+            out.append(f"  thinking: {clip(step.thinking, 400)}")
         calls = [tc for tc in trace.tool_calls if tc.step == step.index]
         for tc in calls:
             status = "ok" if tc.ok else ("refused" if not tc.executed else "FAILED")
-            out.append(f"  -> {tc.name}({json.dumps(tc.args, ensure_ascii=False)[:160]}) [{status}]")
+            out.append(f"  -> {tc.name}({clip(json.dumps(tc.args, ensure_ascii=False), 160)}) [{status}]")
             if tc.error:
-                out.append(f"     error: {tc.error[:200]}")
+                out.append(f"     error: {clip(tc.error, 200)}")
             elif tc.evidence_ids:
                 out.append(f"     evidence: {', '.join(tc.evidence_ids)}")
         if step.text and not calls:
-            out.append(f"  text: {step.text.strip()[:400]}")
+            out.append(f"  text: {clip(step.text, 400)}")
         out.append("")
 
     if show_evidence and trace.evidence:
@@ -97,7 +113,12 @@ def render_trace(trace: Trace, width: int = 88, show_evidence: bool = True) -> s
             if e.source_id:
                 head += f"  <{e.source_id}>"
             out.append(head)
-            out.append(f"      {e.text.strip()[:220].replace(chr(10), ' ')}...")
+            body = clip(e.text, 220)
+            if full:
+                # Preserve paragraph structure: the annotator is reading this.
+                out.extend(f"      {ln}" for ln in body.splitlines())
+            else:
+                out.append(f"      {body.replace(chr(10), ' ')}")
         out.append("")
 
     out.append("FINAL")
