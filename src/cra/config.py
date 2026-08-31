@@ -56,7 +56,9 @@ class RetrievalConfig:
     backend: Literal["bm25", "dense", "none"] = "bm25"
     index_dir: str = "data/index/bm25_pqal"
     corpus: str = "data/processed/corpus_pqal.jsonl"
-    default_k: int = 5
+    # 5 -> 3: at k=5 with the old 1400-char snippet a five-search episode reached
+    # ~10700 tokens, which overflows an 8192 num_ctx. See docs/HANDOFF.md.
+    default_k: int = 3
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
 
@@ -111,7 +113,7 @@ def git_sha() -> str:
 def _load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"config file not found: {path}")
-    return yaml.safe_load(path.read_text()) or {}
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def _resolve(section: str, value: Any) -> dict[str, Any]:

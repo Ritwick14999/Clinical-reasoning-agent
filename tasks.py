@@ -215,6 +215,21 @@ def demo(args: argparse.Namespace) -> None:
     run([venv_python(), "scripts/demo_episode.py", *args.rest])
 
 
+@task("Download PubMedQA + MIRAGE source data into data/raw/")
+def data(args: argparse.Namespace) -> None:
+    run([venv_python(), "-m", "cra.data.download", *args.rest])
+
+
+@task("Build the BM25 retrieval corpus from downloaded PubMedQA data")
+def index(args: argparse.Namespace) -> None:
+    run([venv_python(), "-m", "cra.retrieval.index_build", *args.rest])
+
+
+@task("Run a rollout experiment: python tasks.py rollout -- --config headline_qwen3")
+def rollout(args: argparse.Namespace) -> None:
+    run([venv_python(), "-m", "cra.cli", "rollout", *args.rest])
+
+
 @task("Check Python, the virtualenv, and whether Ollama is serving the needed models")
 def doctor(args: argparse.Namespace) -> None:
     ok = True

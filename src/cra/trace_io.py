@@ -20,9 +20,14 @@ def write_traces(traces: Iterable[Trace], path: str | Path) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     opener = gzip.open if path.suffix == ".gz" else open
-    with opener(path, "wt", encoding="utf-8") as fh:
+    # Written to a temp file and swapped in atomically: the rollout runner
+    # rewrites this whole file after every episode, and a kill mid-write must
+    # leave the previous complete file in place, not a truncated one.
+    tmp = path.with_name(path.name + ".tmp")
+    with opener(tmp, "wt", encoding="utf-8") as fh:
         for trace in traces:
             fh.write(trace.model_dump_json() + "\n")
+    tmp.replace(path)
     return path
 
 
@@ -42,7 +47,15 @@ def read_traces(path: str | Path) -> Iterator[Trace]:
 
 def read_trace_dir(path: str | Path, pattern: str = "*.jsonl*") -> list[Trace]:
     root = Path(path)
-    files = sorted(root.glob(pattern)) if root.is_dir() else [root]
+    if root.is_dir():
+        # write_traces's atomic-write temp file ("traces.jsonl.gz.tmp")
+        # matches "*.jsonl*" too -- excluded explicitly rather than relying
+        # on timing, since a read landing mid-write would otherwise try to
+        # gzip-decode a filename whose suffix is ".tmp", not ".gz", and
+        # crash on the raw gzip magic bytes as if they were UTF-8 text.
+        files = sorted(f for f in root.glob(pattern) if not f.name.endswith(".tmp"))
+    else:
+        files = [root]
     return [t for f in files for t in read_traces(f)]
 
 

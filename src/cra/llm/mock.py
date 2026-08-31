@@ -97,6 +97,16 @@ class HeuristicMockClient:
 
     @staticmethod
     def _options(question: str) -> list[str]:
+        """The allowed answers for this episode.
+
+        Reads the "Allowed answers: ..." line ``prompts.render_question``
+        always appends, rather than scanning for lettered option lines --
+        PubMedQA questions have no options and would otherwise fall through
+        to a hardcoded ``["A"]``, which is not a valid yes/no/maybe answer.
+        """
+        match = re.search(r"^Allowed answers:\s*(.+)$", question, flags=re.MULTILINE)
+        if match:
+            return [a.strip() for a in match.group(1).split(",") if a.strip()]
         return re.findall(r"^\s*([A-E])[).:]\s", question, flags=re.MULTILINE) or ["A"]
 
     @staticmethod

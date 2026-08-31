@@ -143,6 +143,11 @@ class Trace(BaseModel):
     tool_budget: int = 0
     max_steps: int = 0
     agent_mode: str = "function_calling"
+    # 0 means "not applicable" (mock/anthropic providers have no fixed local
+    # context window). Set by the rollout runner's preflight check for Ollama
+    # runs, so a truncated episode is distinguishable from a normal one after
+    # the fact -- see docs/HANDOFF.md, "The context-overflow hazard".
+    context_length: int = 0
     created_at: float = Field(default_factory=time.time)
 
     steps: list[Step] = Field(default_factory=list)

@@ -72,7 +72,7 @@ class ResponseCache:
             self.misses += 1
             return None
         self.hits += 1
-        d = json.loads(path.read_text())
+        d = json.loads(path.read_text(encoding="utf-8"))
         return LLMResponse(
             text=d["text"],
             thinking=d.get("thinking"),
@@ -96,5 +96,10 @@ class ResponseCache:
             "stop_reason": resp.stop_reason,
         }
         tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=0))
+        # encoding="utf-8" is required, not cosmetic: Path.write_text defaults
+        # to the locale encoding, which is cp1252 on Windows and cannot
+        # encode ordinary model output (en dashes, curly quotes). Without it
+        # this raises *after* the real (paid, slow) provider call already
+        # happened, losing the response instead of caching it.
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=0), encoding="utf-8")
         tmp.replace(path)  # atomic: a killed run must not leave a truncated entry

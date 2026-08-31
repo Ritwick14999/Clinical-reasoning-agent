@@ -38,6 +38,7 @@ def run_episode(
     experiment_id: str = "adhoc",
     config_hash: str = "",
     max_tokens: int = 1024,
+    context_length: int = 0,
 ) -> Trace:
     """Run one question end to end and return its trace."""
     cfg = cfg or AgentConfig()
@@ -55,6 +56,7 @@ def run_episode(
         tool_budget=0 if cfg.closed_book else cfg.tool_budget,
         max_steps=cfg.max_steps,
         agent_mode=cfg.mode,
+        context_length=context_length,
     )
 
     store = EvidenceStore()

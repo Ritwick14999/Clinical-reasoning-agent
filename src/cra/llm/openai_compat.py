@@ -58,7 +58,17 @@ class OpenAICompatClient:
             if m.role in ("system", "user"):
                 out.append({"role": m.role, "content": m.content})
             elif m.role == "assistant":
-                msg: dict[str, Any] = {"role": "assistant", "content": m.content or None}
+                # `content: null` is only valid when tool_calls carries the
+                # turn instead. A model that returns neither text nor a tool
+                # call (which happens; an empty decode at temperature=0 is
+                # not exotic) would otherwise produce content=None with no
+                # tool_calls -- Ollama rejects that as "invalid message
+                # content type: <nil>" on the *next* turn, once this message
+                # is replayed as history, crashing an episode that had
+                # already survived the actual empty response via the repair
+                # round. Empty string is a valid, accepted content instead.
+                content = None if m.tool_calls else (m.content or "")
+                msg: dict[str, Any] = {"role": "assistant", "content": content}
                 if m.tool_calls:
                     msg["tool_calls"] = [
                         {

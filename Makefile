@@ -8,15 +8,16 @@
 #   make demo       one agent episode on the mock client
 #
 # Stages added in later phases:
-#   make data       download + prepare datasets and build the retrieval index
-#   make rollouts   run the agent (requires model credentials)
-#   make eval       score committed traces
-#   make results    regenerate every table and figure from committed traces
+#   make data       download PubMedQA + MIRAGE source data
+#   make index      build the BM25 retrieval corpus
+#   make rollout CONFIG=headline_qwen3   run an experiment, requires Ollama
+#   make eval       score committed traces           [Phase 3]
+#   make results    regenerate every table and figure from committed traces [Phase 3]
 
 PY := .venv/bin/python
 PIP := uv pip
 
-.PHONY: setup test lint fmt demo doctor clean
+.PHONY: setup test lint fmt demo doctor data index rollout clean
 
 setup:
 	uv venv --python 3.11 .venv
@@ -39,6 +40,15 @@ demo:
 
 doctor:
 	$(PY) tasks.py doctor
+
+data:
+	$(PY) -m cra.data.download
+
+index:
+	$(PY) -m cra.retrieval.index_build
+
+rollout:
+	$(PY) -m cra.cli rollout --config $(CONFIG)
 
 clean:
 	rm -rf .pytest_cache .ruff_cache **/__pycache__
