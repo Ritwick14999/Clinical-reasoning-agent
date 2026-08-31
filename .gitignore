@@ -17,3 +17,6 @@ data/*
 
 # LLM response cache
 .cache/
+
+# Entailment verdict cache (sqlite, regenerable)
+.cache/

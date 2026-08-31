@@ -17,6 +17,7 @@ mode entirely (docs/DESIGN.md Sec 7).
 from __future__ import annotations
 
 from cra.eval.entailment.base import EntailmentLabel
+from cra.eval.entailment.cache import DEFAULT_CACHE_PATH, EntailmentCache, verdict_key
 
 _MISSING_EXTRA = (
     "NLI entailment requires the 'dense' extra. Install with: python tasks.py setup --extras dev,dense (not a bare pip -- it may belong to a different Python, and a uv-created venv has no pip) "
@@ -28,6 +29,13 @@ _MISSING_EXTRA = (
 # passage pairs, which is the scale a 300-question headline run produces.
 DEFAULT_MODEL = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 
+# The checkpoint declares no maximum length, so transformers disables truncation
+# and warns. Left alone, one long passage would build an outsized tensor and
+# stall the run. 512 is this architecture's trained context, and a retrieval
+# snippet (capped at 1000 characters, roughly 250 tokens) plus a one-sentence
+# hypothesis fits inside it with room to spare.
+MAX_LENGTH = 512
+
 
 class NLIEntailmentChecker:
     name = "nli"
@@ -38,6 +46,9 @@ class NLIEntailmentChecker:
         entail_threshold: float = 0.5,
         contradict_threshold: float = 0.5,
         device: str = "cpu",
+        cache_path: str | None = DEFAULT_CACHE_PATH,
+        use_cache: bool = True,
+        batch_size: int = 16,
     ) -> None:
         try:
             import torch
@@ -49,35 +60,73 @@ class NLIEntailmentChecker:
         self.entail_threshold = entail_threshold
         self.contradict_threshold = contradict_threshold
         self.device = device
+        self.model_name = model_name
+        self.batch_size = batch_size
         self._tokenizer = AutoTokenizer.from_pretrained(model_name)
         self._model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device).eval()
+        self.cache = EntailmentCache(cache_path or DEFAULT_CACHE_PATH, enabled=use_cache)
 
-    def _label_scores(self, premise: str, hypothesis: str) -> dict[str, float]:
-        inputs = self._tokenizer(
-            premise, hypothesis, truncation=True, return_tensors="pt"
-        ).to(self.device)
-        with self._torch.no_grad():
-            logits = self._model(**inputs).logits[0]
-        probs = self._torch.softmax(logits, dim=-1)
-        # Read the label order from the model config rather than assuming a
-        # fixed index -> meaning mapping: it varies by checkpoint, and a wrong
-        # assumption here would silently swap entailment and contradiction.
-        return {self._model.config.id2label[i].lower(): float(probs[i]) for i in range(len(probs))}
+    def _label_scores_batch(self, premises: list[str], hypothesis: str) -> list[dict[str, float]]:
+        """Score one hypothesis against many premises in a single forward pass.
+
+        Previously this ran one pass per premise. The model is small enough
+        that per-call overhead, not compute, dominated: batching keeps the same
+        arithmetic and the same verdicts while giving the hardware something
+        worth doing.
+        """
+        # id2label ordering varies by checkpoint; read it rather than assume a
+        # fixed index -> meaning map, which would silently swap entailment and
+        # contradiction.
+        id2label = self._model.config.id2label
+        out: list[dict[str, float]] = []
+        for start in range(0, len(premises), self.batch_size):
+            chunk = premises[start : start + self.batch_size]
+            inputs = self._tokenizer(
+                chunk,
+                [hypothesis] * len(chunk),
+                truncation=True,
+                max_length=MAX_LENGTH,
+                padding=True,
+                return_tensors="pt",
+            ).to(self.device)
+            with self._torch.no_grad():
+                logits = self._model(**inputs).logits
+            probs = self._torch.softmax(logits, dim=-1)
+            for row in range(len(chunk)):
+                out.append(
+                    {id2label[i].lower(): float(probs[row][i]) for i in range(probs.shape[1])}
+                )
+        return out
 
     def check(self, claim: str, evidence_texts: list[str]) -> EntailmentLabel:
         if not evidence_texts:
             return "not_addressed"
 
+        key = verdict_key(
+            self.name, self.model_name, self.entail_threshold, self.contradict_threshold,
+            claim, evidence_texts,
+        )
+        cached = self.cache.get(key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
         best_entail = best_contradict = 0.0
-        for passage in evidence_texts:
-            scores = self._label_scores(passage, claim)
+        for scores in self._label_scores_batch(evidence_texts, claim):
             entail = next((v for k, v in scores.items() if "entail" in k), 0.0)
             contradict = next((v for k, v in scores.items() if "contra" in k), 0.0)
             best_entail = max(best_entail, entail)
             best_contradict = max(best_contradict, contradict)
 
         if best_entail > self.entail_threshold:
-            return "entailed"
-        if best_contradict > self.contradict_threshold:
-            return "contradicted"
-        return "not_addressed"
+            label: EntailmentLabel = "entailed"
+        elif best_contradict > self.contradict_threshold:
+            label = "contradicted"
+        else:
+            label = "not_addressed"
+
+        self.cache.put(key, label)
+        return label
+
+    def flush(self) -> None:
+        """Commit cached verdicts. Safe to call repeatedly."""
+        self.cache.commit()
