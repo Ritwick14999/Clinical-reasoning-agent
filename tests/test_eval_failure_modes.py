@@ -268,3 +268,72 @@ class TestRecoveredMalformedCalls:
         record = classify_trace(trace, expected_fn=stored_expected)
         assert "required_tool_never_called" in record.tool_use.blocking_reasons
         assert record.failure_mode == "tool_misuse"
+
+
+class TestRetrievedNothing:
+    """R1's gold-PMID test cannot fire on a dataset without gold provenance.
+
+    Human annotation flagged MedQA traces where the agent retrieved nothing at
+    all and answered wrong as retrieval failures; the classifier, unable to fire
+    R1, was calling them reasoning failures. "Correct evidence existed but was
+    not retrieved" is satisfied just as plainly by retrieving nothing.
+    """
+
+    def test_no_passages_and_wrong_answer_is_a_retrieval_failure(self):
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(q, final=FinalAnswer(answer="A", justification="x"))
+        trace.tool_budget = 5
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode == "retrieval_failure"
+        assert record.retrieval_failure_reason == "nothing_retrieved"
+
+    def test_tool_output_alone_does_not_count_as_retrieval(self):
+        """A calculator result is citable evidence but is not a retrieved passage."""
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(q, final=FinalAnswer(answer="A", justification="x"))
+        trace.tool_budget = 5
+        trace.evidence = [
+            Evidence(evidence_id="T1", kind="tool_output", source_tool="calc_meld", text="MELD 24")
+        ]
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode == "retrieval_failure"
+
+    def test_a_retrieved_passage_prevents_it(self):
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(q, final=FinalAnswer(answer="A", justification="x"))
+        trace.tool_budget = 5
+        trace.evidence = [
+            Evidence(evidence_id="E1", kind="passage", source_tool="search_literature",
+                     text="some abstract", source_id="123")
+        ]
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode == "reasoning_failure"
+
+    def test_closed_book_is_not_relabelled(self):
+        """Retrieval withheld by design is not a failure to retrieve."""
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(q, final=FinalAnswer(answer="A", justification="x"))
+        trace.tool_budget = 0
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode == "reasoning_failure"
+
+    def test_correct_answers_are_untouched(self):
+        """R1 only applies to wrong answers; a correct one still routes to R4/R5."""
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(q, final=FinalAnswer(answer="B", justification="x"))
+        trace.tool_budget = 5
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode != "retrieval_failure"
+
+    def test_gold_miss_still_reports_its_own_reason(self):
+        q = _question(dataset="pubmedqa", expected_tools=[], gold_answer="yes",
+                      gold_source_ids=["999"])
+        trace = _trace(q, final=FinalAnswer(answer="no", justification="x"))
+        trace.tool_budget = 5
+        trace.evidence = [
+            Evidence(evidence_id="E1", kind="passage", source_tool="search_literature",
+                     text="unrelated", source_id="111")
+        ]
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode == "retrieval_failure"
+        assert record.retrieval_failure_reason == "gold_not_retrieved"

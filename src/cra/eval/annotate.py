@@ -58,7 +58,10 @@ VALID_HUMAN_LABELS = (
 
 
 def sample_for_annotation(
-    records: list[TraceEvalRecord], n: int = 40, seed: int = 12345
+    records: list[TraceEvalRecord],
+    n: int = 40,
+    seed: int = 12345,
+    exclude_trace_ids: set[str] | None = None,
 ) -> list[TraceEvalRecord]:
     """Stratified by (dataset, model_id, failure_mode) -- see module docstring.
 
@@ -69,6 +72,11 @@ def sample_for_annotation(
     classifier while inflating kappa.
     """
     records = [r for r in records if answer_status(r) != "no_answer"]
+    # Traces already annotated are excluded so a later pass is genuinely
+    # held out. Labels that informed a taxonomy revision cannot also serve as
+    # its independent validation.
+    if exclude_trace_ids:
+        records = [r for r in records if r.trace_id not in exclude_trace_ids]
     if not records:
         return []
 

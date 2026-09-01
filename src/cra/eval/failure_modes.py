@@ -107,6 +107,24 @@ def retrieval_hit(trace: Trace) -> bool | None:
     return bool(gold & set(trace.retrieved_source_ids))
 
 
+def retrieved_nothing(trace: Trace) -> bool:
+    """True when retrieval was available to the agent but produced no passage.
+
+    R1's gold-PMID test only works where a gold source exists, which excludes
+    MedQA entirely. But "correct evidence existed but was not retrieved" -- the
+    taxonomy's own wording -- is satisfied just as plainly when the agent
+    retrieved nothing at all, and that is decidable without gold provenance.
+    Human annotation flagged exactly these cases as retrieval failures while
+    the classifier, unable to fire R1, was calling them reasoning failures.
+
+    Gated on the tool budget so the closed-book ablation, where retrieval is
+    withheld by design, is not relabelled as failing at it.
+    """
+    if trace.tool_budget <= 0:
+        return False
+    return not any(e.kind == "passage" for e in trace.evidence)
+
+
 def _grade_claims(
     trace: Trace, entailment: EntailmentChecker | None
 ) -> tuple[list[ClaimRecord], bool | None]:
@@ -148,11 +166,17 @@ def classify_trace(
     gold_available = trace.question.has_gold_source
 
     failure_mode: FailureMode | None
+    nothing_retrieved = retrieved_nothing(trace)
+    retrieval_failure_reason: str | None = None
+
     if trace.is_correct is None:
         failure_mode = "no_answer"
     elif not trace.is_correct:
-        if gold_available and hit is False:
+        if (gold_available and hit is False) or nothing_retrieved:
             failure_mode = "retrieval_failure"
+            retrieval_failure_reason = (
+                "gold_not_retrieved" if (gold_available and hit is False) else "nothing_retrieved"
+            )
         elif tool_use.blocking_reasons:
             failure_mode = "tool_misuse"
         else:
@@ -172,6 +196,7 @@ def classify_trace(
         split=trace.question.split,
         qid=trace.question.qid,
         is_correct=trace.is_correct,
+        retrieval_failure_reason=retrieval_failure_reason,
         retrieval_gold_available=gold_available,
         retrieval_hit=hit,
         tool_use=tool_use,

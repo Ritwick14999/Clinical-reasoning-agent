@@ -91,6 +91,9 @@ class TraceEvalRecord(BaseModel):
     qid: str
 
     is_correct: bool | None
+    # Which condition fired R1, so a reader can tell a missed gold source from
+    # an agent that retrieved nothing at all.
+    retrieval_failure_reason: str | None = None
     retrieval_gold_available: bool
     # None when retrieval_gold_available is False (MedQA, the trap set) --
     # distinct from False, which means gold was available and missed.

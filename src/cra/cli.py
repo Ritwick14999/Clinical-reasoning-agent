@@ -58,6 +58,11 @@ def main(argv: list[str] | None = None) -> None:
     p_annotate = sub.add_parser("annotate", help="write a blind human-annotation template")
     p_annotate.add_argument("--experiments", required=True, nargs="+")
     p_annotate.add_argument("--sample", type=int, default=40)
+    p_annotate.add_argument(
+        "--exclude", default=None,
+        help="path to an existing annotation CSV whose trace_ids to leave out, so a later "
+        "pass is genuinely held out from the labels that informed the taxonomy",
+    )
     p_annotate.add_argument("--out", default="results/annotations/sample.csv")
     p_annotate.add_argument(
         "--nli", action="store_true", help="grade with NLI first, so the sample is drawn across real R4/R5 labels"
@@ -147,7 +152,14 @@ def _run_annotate_command(args: argparse.Namespace) -> None:
     traces = [t for d in trace_dirs for t in read_trace_dir(d)]
     records = build_records(traces, entailment=entailment)
 
-    sample = sample_for_annotation(records, n=args.sample)
+    excluded: set[str] = set()
+    if args.exclude:
+        import csv as _csv
+
+        with open(args.exclude, newline="", encoding="utf-8") as fh:
+            excluded = {row["trace_id"] for row in _csv.DictReader(fh)}
+        print(f"Excluding {len(excluded)} already-annotated trace(s) from {args.exclude}")
+    sample = sample_for_annotation(records, n=args.sample, exclude_trace_ids=excluded)
     csv_path, transcript_path = write_annotation_template(sample, trace_dirs, args.out)
     print(f"Wrote {len(sample)} trace(s) to annotate:")
     print(f"  {csv_path}  (fill in the human_label column)")
