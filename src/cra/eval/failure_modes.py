@@ -39,7 +39,6 @@ from cra.eval.entailment.base import EntailmentChecker
 from cra.eval.records import ClaimRecord, FailureMode, ToolUseAssessment, TraceEvalRecord
 from cra.types import Trace
 
-
 _MALFORMED_PREFIXES = ("malformed_call", "schema_violation", "unknown_tool")
 
 
