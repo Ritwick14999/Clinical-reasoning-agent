@@ -104,8 +104,6 @@ def test_transcripts_match_their_rows_across_experiments(tmp_path):
     claimed both, so the annotator judged real traces but not the ones their
     labels were recorded against. The template must key by trace_id.
     """
-    import gzip
-    import json
     import re
 
     from cra.types import FinalAnswer, Question, Trace
