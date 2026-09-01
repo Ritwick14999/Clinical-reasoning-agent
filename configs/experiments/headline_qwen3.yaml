@@ -4,10 +4,10 @@ model: qwen3_8b_ollama
 agent: fc
 retrieval: bm25
 datasets: [pubmedqa, medqa]
-split: test
+split: dev
 # A stratified subsample, not the full 1773-question test set. Local 8B
 # inference over the full set takes many hours per model; 300 per dataset
 # supports the failure-mode breakdown with bootstrap CIs. Raise it if your
 # hardware allows -- the response cache makes an extended rerun incremental.
 limit: 300
-notes: "Open-weight headline run. Report with bootstrap CIs."
+notes: "DEV split. Open-weight headline run. Report with bootstrap CIs."

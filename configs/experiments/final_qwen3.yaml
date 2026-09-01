@@ -1,0 +1,11 @@
+# FINAL test-split run. Touched once, for the reported numbers only.
+# Requires CRA_ALLOW_TEST=1. Writes to its own experiment id so the dev
+# traces -- which the kappa validation rests on -- are never overwritten.
+experiment_id: final_qwen3
+model: qwen3_8b_ollama
+agent: fc
+retrieval: bm25
+datasets: [pubmedqa, medqa]
+split: test
+limit: 300
+notes: "TEST split. Final reported numbers. Report with bootstrap CIs."

@@ -6,6 +6,6 @@ model: llama31_8b_ollama
 agent: fc
 retrieval: bm25
 datasets: [pubmedqa, medqa]
-split: test
+split: dev
 limit: 300
-notes: "Open-weight headline run. Report with bootstrap CIs."
+notes: "DEV split. Open-weight headline run. Report with bootstrap CIs."

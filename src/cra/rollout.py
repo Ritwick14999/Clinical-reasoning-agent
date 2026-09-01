@@ -90,11 +90,41 @@ def _ollama_num_ctx(base_url: str, model_id: str) -> int | None:
         if len(parts) == 2 and parts[0] == "num_ctx" and parts[1].isdigit():
             return int(parts[1])
 
-    model_info = payload.get("model_info") or {}
-    for key, value in model_info.items():
-        if key.endswith(".context_length") and isinstance(value, int):
-            return value
+    # Deliberately NOT falling back to model_info["*.context_length"]. That is
+    # the architecture's maximum (40960 for qwen3:8b), not the window Ollama
+    # actually serves, which defaults to 4096 however large the architecture
+    # allows. Reading it produced a preflight that passed a run whose prompts
+    # would have been silently truncated.
     return None
+
+
+def probe_prompt_fits(base_url: str, model: str, n_tokens: int) -> tuple[bool, int]:
+    """Send a prompt of about ``n_tokens`` and report whether it survived intact.
+
+    The only trustworthy answer to "will my prompts fit" is to send one and
+    count what the server evaluated. Ollama truncates over-long prompts from
+    the oldest tokens without error or warning, so a configuration read is not
+    evidence: ``num_ctx`` may be unset, overridden per-model by a Modelfile, or
+    changed by an environment variable on the server rather than the client.
+
+    Returns ``(fits, tokens_evaluated)``.
+    """
+    # "word " is a single token for these tokenizers, so the count is predictable.
+    prompt = "word " * n_tokens
+    body = json.dumps(
+        {"model": model, "prompt": prompt, "stream": False, "options": {"num_predict": 1}}
+    ).encode()
+    host = base_url.rsplit("/v1", 1)[0].rstrip("/")
+    request = urllib.request.Request(
+        f"{host}/api/generate", body, {"Content-Type": "application/json"}
+    )
+    try:
+        payload = json.loads(urllib.request.urlopen(request, timeout=300).read())
+    except (urllib.error.URLError, OSError, TimeoutError, ValueError):
+        return True, 0  # cannot probe; fall back to the configured figure
+    evaluated = int(payload.get("prompt_eval_count") or 0)
+    # Allow a little slack for template and role tokens the server adds.
+    return evaluated >= n_tokens * 0.9, evaluated
 
 
 def resolve_context_length(cfg: ExperimentConfig) -> tuple[int, str]:
@@ -153,6 +183,29 @@ def preflight_check(cfg: ExperimentConfig, registry, questions: list[Question]) 
     expected_tool_tokens = per_passage_tokens * cfg.retrieval.default_k * cfg.agent.tool_budget
     worst_case_tool_tokens = per_passage_tokens * MAX_K * cfg.agent.tool_budget
 
+    expected = base_tokens + expected_tool_tokens
+
+    # Verify against the server rather than against a configuration read: send a
+    # prompt this size and check the server evaluated all of it. Ollama truncates
+    # silently, so a passing config value is not evidence that prompts survive.
+    if cfg.model.provider == "openai_compat" and cfg.model.base_url:
+        fits, evaluated = probe_prompt_fits(cfg.model.base_url, cfg.model.model_id, expected)
+        if evaluated:
+            if fits:
+                context_length, source = max(context_length, evaluated), f"{source}+probe_ok"
+            else:
+                raise RuntimeError(
+                    f"Preflight failed: a {expected}-token prompt was truncated to "
+                    f"{evaluated} tokens by the server. Ollama drops the OLDEST tokens, "
+                    "which are the system prompt and the question, so the run would look "
+                    "like reasoning failure while the model never saw what it was asked. "
+                    "Fix: raise the served context window, then re-run. Setting it on the "
+                    "client does not work -- the OpenAI-compatible endpoint ignores "
+                    "options.num_ctx. Either restart the server with "
+                    "OLLAMA_CONTEXT_LENGTH=8192, or bake 'PARAMETER num_ctx 8192' into a "
+                    "Modelfile for this model."
+                )
+
     result = PreflightResult(
         context_length=context_length,
         context_length_source=source,
@@ -179,10 +232,20 @@ def preflight_check(cfg: ExperimentConfig, registry, questions: list[Question]) 
     return result
 
 
-def _existing_traces(output_path: Path) -> dict[tuple[str, str], Trace]:
+def _existing_traces(output_path: Path) -> dict[tuple[str, str, str], Trace]:
+    """Resume state, keyed by (split, dataset, qid).
+
+    The split is part of the key deliberately. Without it, a run on ``test``
+    would treat a dev trace of the same question id as already done, and the
+    two splits would accumulate in one file -- silently merging the set used
+    for development with the one reserved for final numbers.
+    """
     if not output_path.exists():
         return {}
-    return {(t.question.dataset, t.question.qid): t for t in read_trace_dir(output_path)}
+    return {
+        (t.question.split, t.question.dataset, t.question.qid): t
+        for t in read_trace_dir(output_path)
+    }
 
 
 def _needs_retry(trace: Trace) -> bool:
@@ -257,11 +320,13 @@ def run_rollout(
     existing = _existing_traces(output_path)
     todo = [
         q for q in questions
-        if (q.dataset, q.qid) not in existing or _needs_retry(existing[(q.dataset, q.qid)])
+        if (q.split, q.dataset, q.qid) not in existing
+        or _needs_retry(existing[(q.split, q.dataset, q.qid)])
     ]
     n_retries = sum(
         1 for q in questions
-        if (q.dataset, q.qid) in existing and _needs_retry(existing[(q.dataset, q.qid)])
+        if (q.split, q.dataset, q.qid) in existing
+        and _needs_retry(existing[(q.split, q.dataset, q.qid)])
     )
     if len(todo) < len(questions) or n_retries:
         done = len(questions) - len(todo)

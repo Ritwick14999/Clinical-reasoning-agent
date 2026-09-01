@@ -98,13 +98,53 @@ def test_ollama_num_ctx_parses_parameters_field(monkeypatch):
     assert _ollama_num_ctx("http://localhost:11434/v1", "qwen3:8b") == 8192
 
 
-def test_ollama_num_ctx_parses_model_info_field(monkeypatch):
+def test_ollama_num_ctx_ignores_the_architectural_maximum(monkeypatch):
+    """model_info context_length is what the architecture allows, not what is served.
+
+    Ollama serves 4096 by default however large the architecture allows, so
+    reading this field produced a preflight that passed a run whose prompts
+    would have been silently truncated. Measured on qwen3:8b: the field reports
+    40960 while the server truncated at 4096.
+    """
     monkeypatch.setattr(
         rollout.urllib.request,
         "urlopen",
-        lambda req, timeout=10: _FakeResponse({"model_info": {"qwen3.context_length": 32768}}),
+        lambda req, timeout=10: _FakeResponse({"model_info": {"qwen3.context_length": 40960}}),
     )
-    assert _ollama_num_ctx("http://localhost:11434/v1", "qwen3:8b") == 32768
+    assert _ollama_num_ctx("http://localhost:11434/v1", "qwen3:8b") is None
+
+
+def test_ollama_num_ctx_uses_an_explicit_parameter(monkeypatch):
+    """A Modelfile PARAMETER num_ctx IS the served window, so it is trusted."""
+    monkeypatch.setattr(
+        rollout.urllib.request,
+        "urlopen",
+        lambda req, timeout=10: _FakeResponse({"parameters": "num_ctx 8192" + chr(10) + "stop foo"}),
+    )
+    assert _ollama_num_ctx("http://localhost:11434/v1", "qwen3:8b") == 8192
+
+
+def test_probe_detects_a_truncated_prompt(monkeypatch):
+    """The authoritative check: send a prompt and count what the server evaluated."""
+    monkeypatch.setattr(
+        rollout.urllib.request,
+        "urlopen",
+        lambda req, timeout=300: _FakeResponse({"prompt_eval_count": 2050}),
+    )
+    fits, evaluated = rollout.probe_prompt_fits("http://localhost:11434/v1", "qwen3:8b", 6000)
+    assert fits is False
+    assert evaluated == 2050
+
+
+def test_probe_accepts_a_prompt_that_survives(monkeypatch):
+    monkeypatch.setattr(
+        rollout.urllib.request,
+        "urlopen",
+        lambda req, timeout=300: _FakeResponse({"prompt_eval_count": 6011}),
+    )
+    fits, evaluated = rollout.probe_prompt_fits("http://localhost:11434/v1", "qwen3:8b", 6000)
+    assert fits is True
+    assert evaluated == 6011
 
 
 def test_ollama_num_ctx_returns_none_on_connection_error(monkeypatch):

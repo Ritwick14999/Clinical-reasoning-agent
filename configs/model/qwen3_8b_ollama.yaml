@@ -1,3 +1,8 @@
+# NOTE: -8k is the same weights with num_ctx raised to 8192 via a Modelfile.
+# Ollama serves 4096 by default and truncates silently above it, dropping the
+# OLDEST tokens -- the system prompt and the question. The OpenAI-compatible
+# endpoint ignores options.num_ctx, so the window must be set server-side.
+# Recreate with:  ollama create qwen3-8k:8b -f Modelfile   (FROM qwen3:8b + PARAMETER num_ctx 8192)
 # Primary open-weight model.
 #   ollama pull qwen3:8b
 # Qwen3 supports native tool calling through Ollama's OpenAI-compatible API.
@@ -5,7 +10,7 @@
 # tool-calling support will never call a tool and will look, misleadingly, like
 # a closed-book run.
 provider: openai_compat
-model_id: qwen3:8b
+model_id: qwen3-8k:8b
 base_url: http://localhost:11434/v1
 max_tokens: 1500
 use_cache: true
