@@ -1,41 +1,41 @@
 trace_id,dataset,qid,model_id,answer_status,allowed_labels,human_label
-0588ba1590ab4655,pubmedqa,23048048,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-f992fdf3923249c1,pubmedqa,10605400,qwen3:8b,correct,unsupported_claim | correct_grounded,
-a40e0dce9b1345df,pubmedqa,9602458,qwen3:8b,correct,unsupported_claim | correct_grounded,
-1fe8bab65ca54be2,pubmedqa,25186850,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-5f679031d83945af,medqa,medqa-0495,qwen3:8b,correct,unsupported_claim | correct_grounded,
-1c904b657afe4100,medqa,medqa-0382,qwen3:8b,correct,unsupported_claim | correct_grounded,
-642227fb6d3b440f,medqa,medqa-0371,qwen3:8b,correct,unsupported_claim | correct_grounded,
-674b5460d6944f70,pubmedqa,11566686,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-8fb67acab7274956,medqa,medqa-0042,qwen3:8b,correct,unsupported_claim | correct_grounded,
-a552f2e21a1544e8,pubmedqa,25981682,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-b23f80021d89462b,medqa,medqa-1219,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-91731a8fe37d4ba4,pubmedqa,16097998,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-15ade813e9934daf,medqa,medqa-0862,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-10a1778a8c2d494d,pubmedqa,22349635,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-6081e538cb144ec0,pubmedqa,19711462,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-8226bcef74d043af,pubmedqa,15222284,qwen3:8b,correct,unsupported_claim | correct_grounded,
-87a4d1f6bed94604,medqa,medqa-0360,qwen3:8b,correct,unsupported_claim | correct_grounded,
-d208af6fff0040fd,pubmedqa,23222920,qwen3:8b,correct,unsupported_claim | correct_grounded,
-53cdc41e5558408b,medqa,medqa-1191,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-d4c5ffc161564a78,medqa,medqa-0859,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-f6ea5711c30f4767,pubmedqa,26298839,qwen3:8b,correct,unsupported_claim | correct_grounded,
-035b536e0edc4110,pubmedqa,15703931,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-f7a9c0dbe12c4057,medqa,medqa-0263,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-9fc1274164c448a9,medqa,medqa-1240,qwen3:8b,correct,unsupported_claim | correct_grounded,
-a11f014dbb154e75,pubmedqa,25957366,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-8efad33706bd4327,medqa,medqa-0742,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-b462648b4b014b7f,medqa,medqa-0723,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-7dc83e7e2d654ee4,pubmedqa,17089900,qwen3:8b,correct,unsupported_claim | correct_grounded,
-8dd44429c6d44e26,pubmedqa,20304513,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-4a4f9fcb849c463a,medqa,medqa-1104,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-73fd811f927f4912,medqa,medqa-1014,qwen3:8b,correct,unsupported_claim | correct_grounded,
-2e89ab66daab48b3,pubmedqa,16510651,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-8900b58b9f7a480d,medqa,medqa-1125,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-1dc2a0f5696c4140,pubmedqa,12947068,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-4c3ebc3966c14481,pubmedqa,21756515,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-a34743b137d84aa3,pubmedqa,18534072,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-5bea7de2da064a2c,pubmedqa,21593045,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,
-4afd026c9e444874,pubmedqa,22428608,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-0c13b1bfc0df40f3,pubmedqa,15475728,llama3.1:8b,correct,unsupported_claim | correct_grounded,
-72784ccc204e4578,medqa,medqa-0592,llama3.1:8b,correct,unsupported_claim | correct_grounded,
+0588ba1590ab4655,pubmedqa,23048048,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+48782ced07fc463b,pubmedqa,10605400,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+c5543ebe0f854684,pubmedqa,9602458,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+a7d9b76bdba74ab1,pubmedqa,25186850,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+ef5a99ae30484edd,medqa,medqa-0495,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
+80ac6c533f2240d3,medqa,medqa-0382,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
+edb712ede2a341c3,medqa,medqa-0371,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+674b5460d6944f70,pubmedqa,11566686,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+e0ef989b99964826,medqa,medqa-0042,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+33d59cb67d854dee,pubmedqa,25981682,llama3.1:8b,correct,unsupported_claim | correct_grounded,correct_grounded
+b23f80021d89462b,medqa,medqa-1219,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+91731a8fe37d4ba4,pubmedqa,16097998,llama3.1:8b,correct,unsupported_claim | correct_grounded,correct_grounded
+15ade813e9934daf,medqa,medqa-0862,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
+cb34d4e39ae349c1,pubmedqa,22349635,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+6081e538cb144ec0,pubmedqa,19711462,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+d0c445320fbe4b21,pubmedqa,15222284,llama3.1:8b,correct,unsupported_claim | correct_grounded,correct_grounded
+fc710890db5e4904,medqa,medqa-0360,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+39b545d82dbe4744,pubmedqa,23222920,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+53cdc41e5558408b,medqa,medqa-1191,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
+d4c5ffc161564a78,medqa,medqa-0859,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+95e4776217154440,pubmedqa,26298839,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+2bb0ae6e1b83444a,pubmedqa,15703931,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+3cfc06cef70c40e9,medqa,medqa-0263,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+a628c03fbbaf4b5d,medqa,medqa-1240,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+a11f014dbb154e75,pubmedqa,25957366,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+8efad33706bd4327,medqa,medqa-0742,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+b462648b4b014b7f,medqa,medqa-0723,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
+e5b1a1cd29ec4379,pubmedqa,17089900,llama3.1:8b,correct,unsupported_claim | correct_grounded,correct_grounded
+8dd44429c6d44e26,pubmedqa,20304513,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+4a4f9fcb849c463a,medqa,medqa-1104,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
+14bfba1b281e449b,medqa,medqa-1014,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+2e89ab66daab48b3,pubmedqa,16510651,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+8900b58b9f7a480d,medqa,medqa-1125,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+1dc2a0f5696c4140,pubmedqa,12947068,llama3.1:8b,correct,unsupported_claim | correct_grounded,correct_grounded
+4c3ebc3966c14481,pubmedqa,21756515,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+b409fd07f1ca4d18,pubmedqa,18534072,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
+5bea7de2da064a2c,pubmedqa,21593045,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
+4afd026c9e444874,pubmedqa,22428608,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
+0c13b1bfc0df40f3,pubmedqa,15475728,llama3.1:8b,correct,unsupported_claim | correct_grounded,correct_grounded
+72784ccc204e4578,medqa,medqa-0592,llama3.1:8b,correct,unsupported_claim | correct_grounded,unsupported_claim

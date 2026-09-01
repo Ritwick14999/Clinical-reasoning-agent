@@ -14,7 +14,7 @@ from cra.eval.annotate import (
     write_annotation_template,
 )
 from cra.eval.run import build_records, run_eval
-from cra.trace_io import write_traces
+from cra.trace_io import read_trace_dir, write_traces
 from cra.types import FinalAnswer, Question, Trace
 
 
@@ -95,3 +95,44 @@ def test_annotation_round_trip(tmp_path):
     assert len(annotations) == 1
     assert list(annotations.values())[0] in VALID_HUMAN_LABELS
     assert validate_annotations(csv_path) == [], "a permitted label must not be flagged"
+
+
+def test_transcripts_match_their_rows_across_experiments(tmp_path):
+    """Every model answers the same questions, so a (dataset, qid) key collides.
+
+    A sample was shipped whose transcripts were all one model's while the rows
+    claimed both, so the annotator judged real traces but not the ones their
+    labels were recorded against. The template must key by trace_id.
+    """
+    import gzip
+    import json
+    import re
+
+    from cra.types import FinalAnswer, Question, Trace
+
+    def _trace_for(model, answer):
+        q = Question(qid="q1", dataset="pubmedqa", split="dev", question="Does X?",
+                     gold_answer="yes")
+        return Trace(question=q, model_id=model, experiment_id=f"exp_{model}",
+                     final=FinalAnswer(answer=answer, justification="Because."))
+
+    dirs = []
+    for model, answer in (("model-a", "yes"), ("model-b", "no")):
+        d = tmp_path / "traces" / model
+        write_traces([_trace_for(model, answer)], d / "traces.jsonl.gz")
+        dirs.append(str(d))
+
+    traces = [t for d in dirs for t in read_trace_dir(d)]
+    records = build_records(traces)
+    csv_path, transcript_path = write_annotation_template(
+        records, dirs, tmp_path / "sample.csv"
+    )
+
+    text = transcript_path.read_text(encoding="utf-8")
+    blocks = dict(re.findall(r"### trace_id=(\S+)\n(.*?)(?=\n### trace_id=|\Z)", text, re.S))
+    by_id = {t.trace_id: t for t in traces}
+    assert len(blocks) == 2, "both traces must appear; a colliding key drops one"
+    for trace_id, body in blocks.items():
+        assert f"model={by_id[trace_id].model_id}" in body, (
+            f"transcript under {trace_id} shows the wrong model"
+        )

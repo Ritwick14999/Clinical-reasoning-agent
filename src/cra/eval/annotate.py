@@ -98,10 +98,12 @@ def write_annotation_template(
 ) -> tuple[Path, Path]:
     """Writes the blank-label CSV plus a ``.transcripts.txt`` sibling with the
     full rendered trace for every sampled item. Returns (csv_path, transcript_path)."""
-    traces_by_key = {}
-    for d in trace_dirs:
-        for t in read_trace_dir(d):
-            traces_by_key[(t.question.dataset, t.question.qid)] = t
+    # Keyed by trace_id, never by (dataset, qid): every model answers the same
+    # questions, so a question key collides across experiments and the last one
+    # loaded silently wins. That shipped a sample whose transcripts were all one
+    # model's while the rows claimed both -- the annotator judged real traces,
+    # but not the ones their labels were recorded against.
+    traces_by_id = {t.trace_id: t for d in trace_dirs for t in read_trace_dir(d)}
 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -109,7 +111,7 @@ def write_annotation_template(
 
     with transcript_path.open("w", encoding="utf-8") as fh:
         for r in records:
-            trace = traces_by_key.get((r.dataset, r.qid))
+            trace = traces_by_id.get(r.trace_id)
             fh.write(f"### trace_id={r.trace_id}\n")
             # full=True: the annotator must read the same evidence text the
             # entailment checker does, or the kappa measures the missing text.
