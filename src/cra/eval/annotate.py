@@ -173,10 +173,21 @@ def validate_annotations(path: str | Path) -> list[str]:
 
 
 def read_annotations(path: str | Path) -> dict[str, str]:
-    """trace_id -> human_label, for rows where a label has actually been filled in."""
+    """trace_id -> human_label, for rows where a label has actually been filled in.
+
+    Labels are stripped. A trailing space is invisible in a spreadsheet but
+    makes the label compare unequal to the classifier's, turning a perfect
+    agreement into a guaranteed disagreement and silently depressing kappa --
+    which is exactly what it did before this strip existed. ``validate_annotations``
+    already stripped, so the two disagreed about what a label was.
+    """
     with Path(path).open("r", newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
-        return {row["trace_id"]: row["human_label"] for row in reader if row.get("human_label")}
+        return {
+            row["trace_id"]: row["human_label"].strip()
+            for row in reader
+            if (row.get("human_label") or "").strip()
+        }
 
 
 @dataclass

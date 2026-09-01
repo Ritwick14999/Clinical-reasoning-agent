@@ -134,3 +134,31 @@ def test_transcripts_match_their_rows_across_experiments(tmp_path):
         assert f"model={by_id[trace_id].model_id}" in body, (
             f"transcript under {trace_id} shows the wrong model"
         )
+
+
+def test_annotation_labels_are_stripped(tmp_path):
+    """A trailing space is invisible in a spreadsheet but scores as a different
+    label, turning a perfect agreement into a guaranteed disagreement and
+    silently depressing kappa. It did exactly that on a real annotation pass."""
+    import csv as csv_module
+
+    path = tmp_path / "labels.csv"
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv_module.DictWriter(fh, fieldnames=ANNOTATION_FIELDS)
+        writer.writeheader()
+        writer.writerow({
+            "trace_id": "t1", "dataset": "pubmedqa", "qid": "q1", "model_id": "m",
+            "answer_status": "correct",
+            "allowed_labels": "unsupported_claim | correct_grounded",
+            "human_label": "correct_grounded   ",
+        })
+        writer.writerow({
+            "trace_id": "t2", "dataset": "pubmedqa", "qid": "q2", "model_id": "m",
+            "answer_status": "correct",
+            "allowed_labels": "unsupported_claim | correct_grounded",
+            "human_label": "   ",
+        })
+
+    annotations = read_annotations(path)
+    assert annotations == {"t1": "correct_grounded"}, "whitespace must not create a new label"
+    assert validate_annotations(path) == [], "a padded but valid label is not a problem"
