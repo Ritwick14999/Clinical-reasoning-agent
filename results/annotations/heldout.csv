@@ -11,7 +11,7 @@ e77dc26e4e8d42c9,pubmedqa,15223725,llama3.1:8b,incorrect,retrieval_failure | too
 035b536e0edc4110,pubmedqa,15703931,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
 7bfbfee92911403d,medqa,medqa-0478,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
 acc494ff889a445a,medqa,medqa-0931,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
-5ba17ff7d11149a4,medqa,medqa-0188,qwen3:8b,correct,unsupported_claim | correct_grounded,
+5ba17ff7d11149a4,medqa,medqa-0188,qwen3:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
 6fbd5f3216bb41c7,medqa,medqa-0880,llama3.1:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,retrieval_failure
 06bbf42b2f944725,pubmedqa,15381614,qwen3:8b,incorrect,retrieval_failure | tool_misuse | reasoning_failure,reasoning_failure
 e357a507f3cf4464,pubmedqa,26518378,qwen3:8b,correct,unsupported_claim | correct_grounded,unsupported_claim
