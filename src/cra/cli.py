@@ -164,9 +164,17 @@ def _run_annotate_command(args: argparse.Namespace) -> None:
 def _run_annotate_score_command(args: argparse.Namespace) -> None:
     import csv as csv_module
 
-    from cra.eval.annotate import read_annotations, score_annotations
+    from cra.eval.annotate import read_annotations, score_annotations, validate_annotations
     from cra.eval.run import build_records
     from cra.trace_io import read_trace_dir
+
+    # Catch a label contradicting its own row before spending a grading pass on it.
+    problems = validate_annotations(args.annotations)
+    if problems:
+        print(f"{len(problems)} annotation problem(s) -- fix these before scoring:")
+        for problem in problems:
+            print(f"  {problem}")
+        raise SystemExit(1)
 
     entailment = _build_nli_checker() if args.nli else None
     trace_dirs = [f"results/traces/{e}" for e in args.experiments]

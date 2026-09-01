@@ -5,7 +5,14 @@ the whole point of the default `cra eval` path.
 
 from __future__ import annotations
 
-from cra.eval.annotate import read_annotations, sample_for_annotation, write_annotation_template
+from cra.eval.annotate import (
+    ANNOTATION_FIELDS,
+    VALID_HUMAN_LABELS,
+    read_annotations,
+    sample_for_annotation,
+    validate_annotations,
+    write_annotation_template,
+)
 from cra.eval.run import build_records, run_eval
 from cra.trace_io import write_traces
 from cra.types import FinalAnswer, Question, Trace
@@ -76,12 +83,15 @@ def test_annotation_round_trip(tmp_path):
 
     with csv_path.open("r", newline="", encoding="utf-8") as fh:
         reader = list(csv_module.DictReader(fh))
-    reader[0]["human_label"] = "reasoning_failure"
+    # Pick a label the row's own answer_status permits; the template constrains
+    # the choice precisely so a contradictory one cannot be entered.
+    reader[0]["human_label"] = reader[0]["allowed_labels"].split(" | ")[0]
     with csv_path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv_module.DictWriter(fh, fieldnames=["trace_id", "dataset", "qid", "model_id", "human_label"])
+        writer = csv_module.DictWriter(fh, fieldnames=ANNOTATION_FIELDS)
         writer.writeheader()
         writer.writerows(reader)
 
     annotations = read_annotations(csv_path)
     assert len(annotations) == 1
-    assert list(annotations.values())[0] == "reasoning_failure"
+    assert list(annotations.values())[0] in VALID_HUMAN_LABELS
+    assert validate_annotations(csv_path) == [], "a permitted label must not be flagged"

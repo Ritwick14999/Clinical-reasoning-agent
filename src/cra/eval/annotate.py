@@ -22,7 +22,32 @@ from cra.eval.agreement import AgreementResult, cohens_kappa
 from cra.eval.records import TraceEvalRecord
 from cra.trace_io import read_trace_dir, render_trace
 
-ANNOTATION_FIELDS = ["trace_id", "dataset", "qid", "model_id", "human_label"]
+ANNOTATION_FIELDS = [
+    "trace_id", "dataset", "qid", "model_id", "answer_status", "allowed_labels", "human_label",
+]
+
+# Whether the answer was right is a string comparison against gold, not a
+# judgement -- yet the taxonomy encodes it in the label, so an annotator can
+# pick a label that contradicts a known fact. In the first annotation pass nine
+# of forty labels did exactly that. The template therefore states the answer
+# status and offers only the labels consistent with it, leaving the annotator
+# the part that genuinely needs a human: for a wrong answer, which upstream
+# cause; for a right one, whether the justification is grounded.
+ALLOWED_BY_STATUS: dict[str, tuple[str, ...]] = {
+    "incorrect": ("retrieval_failure", "tool_misuse", "reasoning_failure"),
+    "correct": ("unsupported_claim", "correct_grounded"),
+    "no_answer": ("no_answer",),
+}
+
+
+def answer_status(record: TraceEvalRecord) -> str:
+    if record.is_correct is None:
+        return "no_answer"
+    return "correct" if record.is_correct else "incorrect"
+
+
+def allowed_labels(record: TraceEvalRecord) -> tuple[str, ...]:
+    return ALLOWED_BY_STATUS[answer_status(record)]
 
 # Valid values for the human_label column -- the same taxonomy the
 # classifier uses, so kappa is computed on directly comparable labels.
@@ -35,7 +60,15 @@ VALID_HUMAN_LABELS = (
 def sample_for_annotation(
     records: list[TraceEvalRecord], n: int = 40, seed: int = 12345
 ) -> list[TraceEvalRecord]:
-    """Stratified by (dataset, model_id, failure_mode) -- see module docstring."""
+    """Stratified by (dataset, model_id, failure_mode) -- see module docstring.
+
+    Traces with no parseable answer are excluded. Their label is forced --
+    ``no_answer`` is the only option consistent with the answer status, and the
+    classifier derives it from the same objective fact -- so including them
+    would contribute guaranteed agreement that measures nothing about the
+    classifier while inflating kappa.
+    """
+    records = [r for r in records if answer_status(r) != "no_answer"]
     if not records:
         return []
 
@@ -92,11 +125,41 @@ def write_annotation_template(
         writer.writeheader()
         for r in records:
             writer.writerow(
-                {"trace_id": r.trace_id, "dataset": r.dataset, "qid": r.qid,
-                 "model_id": r.model_id, "human_label": ""}
+                {
+                    "trace_id": r.trace_id, "dataset": r.dataset, "qid": r.qid,
+                    "model_id": r.model_id,
+                    "answer_status": answer_status(r),
+                    "allowed_labels": " | ".join(allowed_labels(r)),
+                    "human_label": "",
+                }
             )
 
     return out_path, transcript_path
+
+
+def validate_annotations(path: str | Path) -> list[str]:
+    """Problems in a filled-in annotation CSV, as human-readable strings.
+
+    Catches a label that contradicts the row's own answer status. Silently
+    scoring such a row would mix an annotation slip into the kappa and read as
+    classifier disagreement.
+    """
+    problems: list[str] = []
+    with Path(path).open("r", newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            label = (row.get("human_label") or "").strip()
+            if not label:
+                continue
+            if label not in VALID_HUMAN_LABELS:
+                problems.append(f"{row['trace_id']}: {label!r} is not a valid label")
+                continue
+            allowed = [a.strip() for a in (row.get("allowed_labels") or "").split("|") if a.strip()]
+            if allowed and label not in allowed:
+                problems.append(
+                    f"{row['trace_id']}: {label!r} contradicts answer_status="
+                    f"{row.get('answer_status')!r}; allowed here: {', '.join(allowed)}"
+                )
+    return problems
 
 
 def read_annotations(path: str | Path) -> dict[str, str]:
