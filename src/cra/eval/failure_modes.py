@@ -40,6 +40,34 @@ from cra.eval.records import ClaimRecord, FailureMode, ToolUseAssessment, TraceE
 from cra.types import Trace
 
 
+_MALFORMED_PREFIXES = ("malformed_call", "schema_violation", "unknown_tool")
+
+
+def _has_malformed_call(trace: Trace) -> bool:
+    return any(tc.error and tc.error.startswith(_MALFORMED_PREFIXES) for tc in trace.tool_calls)
+
+
+def _recovered_from_malformed(trace: Trace) -> bool:
+    """True when every malformed call was followed by a successful call.
+
+    "Followed by" is ordered, not merely co-present: a tool that succeeded
+    *before* failing was not a recovery. A call to a tool that does not exist
+    counts as recovered if any later call succeeded at all, since there is no
+    same-named tool to retry.
+    """
+    calls = sorted(trace.tool_calls, key=lambda tc: (tc.step, tc.index))
+    for i, tc in enumerate(calls):
+        if not (tc.error and tc.error.startswith(_MALFORMED_PREFIXES)):
+            continue
+        later = calls[i + 1 :]
+        if tc.error.startswith("unknown_tool"):
+            if not any(later_call.ok for later_call in later):
+                return False
+        elif not any(later_call.ok and later_call.name == tc.name for later_call in later):
+            return False
+    return True
+
+
 def assess_tool_use(trace: Trace, expected_fn=resolve_expected_tools) -> ToolUseAssessment:
     """Compares actual tool use against the ``expected_tools`` oracle.
 
@@ -60,11 +88,13 @@ def assess_tool_use(trace: Trace, expected_fn=resolve_expected_tools) -> ToolUse
         reasons.append("unnecessary_call")
     if expected_set and used_set and not (used_set & expected_set):
         reasons.append("wrong_tool")
-    if any(
-        tc.error and tc.error.startswith(("malformed_call", "schema_violation", "unknown_tool"))
-        for tc in trace.tool_calls
-    ):
-        reasons.append("malformed_call")
+    if _has_malformed_call(trace):
+        # A malformed call the agent retried successfully is a formatting slip,
+        # not the cause of a wrong answer. Both are recorded; only the
+        # unrecovered form can capture the primary label.
+        reasons.append(
+            "malformed_call_recovered" if _recovered_from_malformed(trace) else "malformed_call"
+        )
 
     return ToolUseAssessment(expected=expected, used=used, reasons=reasons)
 
@@ -124,7 +154,7 @@ def classify_trace(
     elif not trace.is_correct:
         if gold_available and hit is False:
             failure_mode = "retrieval_failure"
-        elif tool_use.reasons:
+        elif tool_use.blocking_reasons:
             failure_mode = "tool_misuse"
         else:
             failure_mode = "reasoning_failure"

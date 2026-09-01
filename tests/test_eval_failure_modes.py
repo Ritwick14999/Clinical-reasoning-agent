@@ -164,3 +164,107 @@ def test_assess_tool_use_malformed_call():
 def test_retrieval_hit_none_when_no_gold_source():
     trace = _trace(_question(dataset="medqa", gold_source_ids=[]))
     assert retrieval_hit(trace) is None
+
+
+class TestRecoveredMalformedCalls:
+    """A malformed call the agent retried successfully explains nothing.
+
+    Measured over the committed traces before this distinction existed: 151 of
+    159 tool_misuse labels were transient formatting slips the agent recovered
+    from, which outranked reasoning_failure in the R1->R5 precedence and made
+    the cross-model comparison misleading.
+    """
+
+    @staticmethod
+    def _calls(*specs):
+        return [
+            ToolCallRecord(
+                index=i, step=i, name=name, args={}, ok=ok, output="x",
+                error=error, executed=True,
+            )
+            for i, (name, ok, error) in enumerate(specs)
+        ]
+
+    def test_recovered_call_does_not_fire_tool_misuse(self):
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(
+            q,
+            final=FinalAnswer(answer="A", justification="x"),
+            tool_calls=self._calls(
+                ("search_literature", False, "schema_violation: at k: '5' is not of type 'integer'"),
+                ("search_literature", True, None),
+            ),
+        )
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert "malformed_call_recovered" in record.tool_use.reasons
+        assert record.tool_use.blocking_reasons == []
+        assert record.failure_mode == "reasoning_failure"
+
+    def test_unrecovered_call_still_fires_tool_misuse(self):
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(
+            q,
+            final=FinalAnswer(answer="A", justification="x"),
+            tool_calls=self._calls(
+                ("search_literature", False, "schema_violation: bad k"),
+            ),
+        )
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert "malformed_call" in record.tool_use.blocking_reasons
+        assert record.failure_mode == "tool_misuse"
+
+    def test_success_before_failure_is_not_recovery(self):
+        """Ordering matters: a tool that worked and then broke was not recovered."""
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(
+            q,
+            final=FinalAnswer(answer="A", justification="x"),
+            tool_calls=self._calls(
+                ("search_literature", True, None),
+                ("search_literature", False, "schema_violation: bad k"),
+            ),
+        )
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode == "tool_misuse"
+
+    def test_recovery_must_be_the_same_tool(self):
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(
+            q,
+            final=FinalAnswer(answer="A", justification="x"),
+            tool_calls=self._calls(
+                ("calc_meld", False, "schema_violation: bad bilirubin"),
+                ("search_literature", True, None),
+            ),
+        )
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode == "tool_misuse"
+
+    def test_unknown_tool_recovers_via_any_later_success(self):
+        """There is no same-named tool to retry, so any later success counts."""
+        q = _question(dataset="medqa", expected_tools=[], gold_answer="B")
+        trace = _trace(
+            q,
+            final=FinalAnswer(answer="A", justification="x"),
+            tool_calls=self._calls(
+                ("nonexistent_tool", False, "unknown_tool: no tool named 'nonexistent_tool'"),
+                ("search_literature", True, None),
+            ),
+        )
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert record.failure_mode == "reasoning_failure"
+
+    def test_a_genuine_misuse_still_outranks_a_recovered_slip(self):
+        """A recovered slip must not mask a real missing-tool failure."""
+        q = _question(dataset="medqa", expected_tools=["calc_cha2ds2_vasc"], gold_answer="B")
+        trace = _trace(
+            q,
+            final=FinalAnswer(answer="A", justification="x"),
+            tool_calls=self._calls(
+                ("search_literature", False, "schema_violation: bad k"),
+                ("search_literature", True, None),
+            ),
+        )
+        record = classify_trace(trace, expected_fn=stored_expected)
+        assert "required_tool_never_called" in record.tool_use.blocking_reasons
+        assert record.failure_mode == "tool_misuse"

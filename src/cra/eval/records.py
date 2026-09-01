@@ -40,7 +40,16 @@ TOOL_MISUSE_REASONS = (
     "unnecessary_call",
     "wrong_tool",
     "malformed_call",
+    "malformed_call_recovered",
 )
+
+# Reasons that do NOT by themselves explain a wrong answer, and so must not
+# capture the primary label. A malformed call the agent immediately retried and
+# got right caused nothing: the evidence still arrived and the answer still had
+# every chance to be correct. Measured over the committed traces, 151 of 159
+# tool_misuse labels were exactly this, which outranked reasoning_failure in the
+# R1->R5 precedence and made the cross-model comparison misleading.
+NON_BLOCKING_REASONS = frozenset({"malformed_call_recovered"})
 
 
 class ClaimRecord(BaseModel):
@@ -61,9 +70,13 @@ class ClaimRecord(BaseModel):
 class ToolUseAssessment(BaseModel):
     expected: list[str] = Field(default_factory=list)
     used: list[str] = Field(default_factory=list)
-    # Subset of TOOL_MISUSE_REASONS; non-empty + an incorrect answer is what
-    # fires the R2 (tool_misuse) label.
+    # Everything observed, including non-blocking signals worth reporting.
     reasons: list[str] = Field(default_factory=list)
+
+    @property
+    def blocking_reasons(self) -> list[str]:
+        """Reasons that can explain a wrong answer. R2 fires on these only."""
+        return [r for r in self.reasons if r not in NON_BLOCKING_REASONS]
 
 
 class TraceEvalRecord(BaseModel):
