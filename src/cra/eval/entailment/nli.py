@@ -1,7 +1,7 @@
 """NLI-based entailment checker (a DeBERTa-v3 MNLI-class model), behind the
 ``dense`` extra.
 
-This is the checker that actually satisfies CLAUDE.md's two-stage invariant
+This is the checker that actually satisfies docs/CONVENTIONS.md's two-stage invariant
 for eval: deterministic, local, no network call, no per-run API cost. See
 ``judge.py``'s module docstring for the contrast -- that checker calls a live
 model by design and is deliberately kept out of the default ``cra eval`` path.

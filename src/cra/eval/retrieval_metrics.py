@@ -10,7 +10,7 @@ than it was actually measured to be.
 Rank is approximated as first-occurrence position in ``Trace.evidence`` --
 the order evidence IDs were assigned, which follows retriever rank order
 within a single search call. This is an approximation when an episode makes
-multiple searches with different queries (see ``docs/HANDOFF.md``), not a
+multiple searches with different queries, not a
 literal per-query MRR.
 """
 

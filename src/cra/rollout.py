@@ -4,7 +4,7 @@
 that:
 
 * runs the context-overflow preflight check before any model call (see
-  ``docs/HANDOFF.md``, "The context-overflow hazard" -- Ollama truncates a
+  Ollama truncates a
   too-long prompt from the *oldest* end, silently dropping the system prompt
   and the question, which would look like a reasoning failure downstream),
 * is resumable, by skipping questions already present in the output file and
@@ -32,7 +32,7 @@ from cra.llm.factory import build_llm
 from cra.trace_io import read_trace_dir, write_traces
 from cra.types import Question, Trace
 
-# Matches the 8 GB VRAM target machine (docs/HANDOFF.md decision 4). Used only
+# Matches the 8 GB VRAM target machine. Used only
 # when the actual configured value cannot be verified against Ollama.
 DEFAULT_CONTEXT_LENGTH = 8192
 # Crude estimate (no tokenizer dependency), consistent with the usage
@@ -70,7 +70,7 @@ def _ollama_num_ctx(base_url: str, model_id: str) -> int | None:
 
     Ollama's OpenAI-compatible endpoint does not accept ``num_ctx`` directly,
     so this is the only way to learn the *actual* configured value rather
-    than assume one (docs/HANDOFF.md: "Verify which against the installed
+    than assume one (verify against the installed
     Ollama version rather than assuming").
     """
     host = base_url.rsplit("/v1", 1)[0].rstrip("/")
@@ -160,7 +160,7 @@ def preflight_check(cfg: ExperimentConfig, registry, questions: list[Question]) 
     ``retrieval.default_k`` -- what the tool actually returns when the model
     doesn't specify ``k`` -- and is what gates the run: it is the number that
     would actually occur under normal operation, and matches how
-    ``docs/HANDOFF.md`` decision 4 was measured. ``absolute_worst_case_tokens``
+    the reduced k and snippet size were measured. ``absolute_worst_case_tokens``
     additionally assumes every search requests the maximum allowed ``k``; if
     that alone would overflow, a non-fatal warning is printed so the run isn't
     silently vulnerable to an unusually greedy model.
@@ -260,7 +260,7 @@ def _needs_retry(trace: Trace) -> bool:
 
 
 def load_questions(cfg: ExperimentConfig) -> list[Question]:
-    """300 per dataset (docs/HANDOFF.md decision 3), not 300 total."""
+    """300 per dataset, not 300 total."""
     questions: list[Question] = []
     for dataset in cfg.datasets:
         split_questions = get_split(dataset, cfg.split)

@@ -5,7 +5,7 @@ any :class:`~cra.llm.base.LLMClient` already in the codebase -- the mock, for
 tests, or a real Ollama model for a live pass.
 
 **Not part of the default, "pure function of traces" eval path.**
-CLAUDE.md's rollout/eval separation exists specifically so eval can be
+docs/CONVENTIONS.md's rollout/eval separation exists specifically so eval can be
 improved and re-run at zero cost; a checker that calls a model on every run
 breaks that. So this class is invoked as a separate, explicitly-labelled
 step (``cra judge-check``), never by ``cra eval``, which uses

@@ -12,7 +12,7 @@ rethinking:
 
 * **A trace with no parseable final answer gets its own ``no_answer`` label**,
   not ``reasoning_failure``. ``Trace.is_correct`` already returns ``None`` for
-  exactly this case, and CLAUDE.md is explicit: "a missing answer is distinct
+  exactly this case, and docs/CONVENTIONS.md is explicit: "a missing answer is distinct
   from a wrong answer... never collapse them." R1-R3 as written in the design
   doc implicitly assume an answer exists ("answer incorrect"); a trace with no
   answer at all doesn't satisfy that precondition, so it needs a place that

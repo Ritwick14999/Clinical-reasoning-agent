@@ -1,6 +1,6 @@
 """Dataset split access with ``CRA_ALLOW_TEST`` discipline, and seeded sampling.
 
-``test`` is for final numbers only (``CLAUDE.md``, "No test-set peeking").
+``test`` is for final numbers only (``docs/CONVENTIONS.md``, "No test-set peeking").
 That rule is enforced here, once, rather than trusted to discipline
 elsewhere: this is the one gate every experiment config's question loading
 passes through.
@@ -28,7 +28,7 @@ def _check_test_allowed(split: Split) -> None:
         raise RuntimeError(
             "split='test' requires CRA_ALLOW_TEST=1. All development and threshold "
             "calibration happens on 'dev'; test is touched once, for final numbers only "
-            "(see CLAUDE.md, 'No test-set peeking')."
+            "(see docs/CONVENTIONS.md, 'No test-set peeking')."
         )
 
 
@@ -50,7 +50,7 @@ def sample_stratified(
     split's, so a 300-question headline run is not accidentally skewed by
     sampling variance in that balance. ``n`` is a per-call cap, not a
     per-dataset one -- callers apply it once per dataset (see
-    ``docs/HANDOFF.md`` decision 3: "300 questions per dataset").
+    300 questions per dataset).
     """
     if n is None or n >= len(questions):
         return list(questions)

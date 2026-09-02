@@ -3,7 +3,7 @@
 One :class:`TraceEvalRecord` per :class:`~cra.types.Trace`. Building these is
 what ``cra eval`` does; ``report.py`` and ``viz/plots.py`` are pure
 aggregations over a list of these plus nothing else, which is what keeps them
-"a pure function of traces" in the sense CLAUDE.md's rollout/eval separation
+"a pure function of traces" in the sense docs/CONVENTIONS.md's rollout/eval separation
 means it.
 """
 
@@ -20,7 +20,7 @@ EntailmentLabel = Literal["entailed", "contradicted", "not_addressed"]
 # Ordered R1 -> R5 in docs/DESIGN.md Sec 6, plus two additions this module
 # makes explicit rather than silently folding into an existing bucket -- see
 # failure_modes.py's module docstring for why each exists:
-#   * "no_answer" -- CLAUDE.md: "a missing answer is distinct from a wrong
+#   * "no_answer" -- docs/CONVENTIONS.md: "a missing answer is distinct from a wrong
 #     answer... never collapse them."
 #   * the primary Literal excludes "ungraded": a correct trace with no
 #     entailment pass run yet has ``failure_mode = None``, not a sixth label,

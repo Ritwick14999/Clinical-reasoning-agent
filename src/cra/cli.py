@@ -197,7 +197,7 @@ def _run_annotate_command(args: argparse.Namespace) -> None:
     print(
         "\nValid labels: no_answer, retrieval_failure, tool_misuse, reasoning_failure, "
         "unsupported_claim, correct_grounded. Judge each trace against the rubric in "
-        "src/cra/eval/entailment/rubric.md and the taxonomy in CLAUDE.md before looking at "
+        "src/cra/eval/entailment/rubric.md and the taxonomy in docs/CONVENTIONS.md before looking at "
         "anything the classifier said -- that's what makes 'blind' mean something.\n"
         "When done: cra annotate-score --experiments ... --annotations " + str(csv_path)
     )

@@ -146,7 +146,7 @@ class Trace(BaseModel):
     # 0 means "not applicable" (mock/anthropic providers have no fixed local
     # context window). Set by the rollout runner's preflight check for Ollama
     # runs, so a truncated episode is distinguishable from a normal one after
-    # the fact -- see docs/HANDOFF.md, "The context-overflow hazard".
+    # the fact, since Ollama truncates over-long prompts silently.
     context_length: int = 0
     created_at: float = Field(default_factory=time.time)
 

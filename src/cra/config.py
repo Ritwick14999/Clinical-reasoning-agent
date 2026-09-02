@@ -77,7 +77,7 @@ class RetrievalConfig:
     index_dir: str = "data/index/bm25_pqal"
     corpus: str = "data/processed/corpus_pqal.jsonl"
     # 5 -> 3: at k=5 with the old 1400-char snippet a five-search episode reached
-    # ~10700 tokens, which overflows an 8192 num_ctx. See docs/HANDOFF.md.
+    # ~10700 tokens, which overflows an 8192 num_ctx. 
     default_k: int = 3
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 

@@ -4,7 +4,7 @@ Two implementations, deliberately asymmetric in status:
 
 * :mod:`cra.eval.entailment.nli` -- local, deterministic, no network. This is
   the checker the default ``cra eval`` pipeline uses, because it is the only
-  one that actually satisfies CLAUDE.md's "eval is a pure function of traces;
+  one that actually satisfies docs/CONVENTIONS.md's "eval is a pure function of traces;
   no network, no model" invariant.
 * :mod:`cra.eval.entailment.judge` -- calls a real LLM. Useful as a
   cross-validation signal (docs/DESIGN.md Sec 7: "cross-method agreement...

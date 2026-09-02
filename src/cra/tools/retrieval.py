@@ -16,7 +16,7 @@ from cra.tools.base import EvidenceDraft, ToolResult
 
 MAX_K = 10
 # 1400 -> 1000: measured to overflow an 8192 num_ctx at k=5 over a 5-search
-# episode. See docs/HANDOFF.md, "The context-overflow hazard".
+# episode, which Ollama would silently truncate from the oldest end.
 SNIPPET_CHARS = 1000
 
 

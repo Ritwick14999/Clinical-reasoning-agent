@@ -9,7 +9,7 @@ This is deliberately the weakest link in the taxonomy: a keyword rule cannot
 capture clinical judgement, and both false positives (inputs present but not
 actually decision-relevant) and false negatives (paraphrased inputs the regex
 misses) are expected. Hand-audit it on a sample and report its precision and
-recall as a stated limitation, per ``docs/HANDOFF.md`` Sec 2a -- never present
+recall as a stated limitation -- never present
 this as ground truth.
 """
 

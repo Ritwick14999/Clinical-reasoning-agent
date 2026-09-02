@@ -4,8 +4,7 @@ The oracle itself is a rule-based, imprecise stand-in for "which tools this
 case actually needed" (``cra.data.expected_tools``'s module docstring
 explains why). Report these numbers as "precision/recall against the
 oracle", never as "precision/recall against ground truth" -- the oracle's own
-precision/recall needs a hand audit before either claim is trustworthy
-(docs/HANDOFF.md decision 1).
+precision/recall needs a hand audit before either claim is trustworthy.
 """
 
 from __future__ import annotations
