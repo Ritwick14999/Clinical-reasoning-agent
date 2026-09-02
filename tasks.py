@@ -230,6 +230,11 @@ def rollout(args: argparse.Namespace) -> None:
     run([venv_python(), "-m", "cra.cli", "rollout", *args.rest])
 
 
+@task("Launch the Gradio demo (needs --extras demo; runs on the mock model by default)")
+def demo_app(args: argparse.Namespace) -> None:
+    run([venv_python(), "-m", "cra.demo.app", *args.rest])
+
+
 @task("Check Python, the virtualenv, and whether Ollama is serving the needed models")
 def doctor(args: argparse.Namespace) -> None:
     ok = True

@@ -125,6 +125,23 @@ the agent under-uses its budget, not because budget cannot matter in principle.
 A budget-50 arm was attempted and **refused by the preflight**: worst-case prompt ~40k
 tokens against a 12288 window. Not runnable on 8 GB VRAM.
 
+## 6b. Adversarial trap set (30 hand-written items, dev)
+
+| | resisted the trap | took the trap | claims entailed | traces w/ unsupported claim | searched |
+|---|---|---|---|---|---|
+| qwen3 | 30/30 (100%) | 0% | 21% | 96% | 3/30 |
+| llama3.1 | 28/30 (93%) | 3% | 25% | 73% | 1/30 |
+
+**The trap set does not discriminate** -- both models resist at 93-100% against 25%
+chance. The items are badly designed: each pairs a recklessly wrong distractor with a
+cautious, hedged gold answer, so ordinary medical priors settle it without evidence. They
+test a preference for careful phrasing, not resistance to unsupported claims.
+
+The grounding measurement on the same traces is the sharpest form of the main result:
+qwen3 answered all 30 correctly while searching 3 of them, and 96% of its traces carry an
+unsupported claim. Getting the answer right and justifying it from evidence are separable,
+and these items separate them completely.
+
 ## 7. Defects found and corrected (each changed a reported number)
 
 | Defect | Impact | How found |
