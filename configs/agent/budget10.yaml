@@ -1,0 +1,17 @@
+# Effectively unbounded *for this agent*, not literally unlimited.
+#
+# The declared budget_unlimited config (50 calls) is not runnable on 8 GB of
+# VRAM: its worst-case prompt estimate is ~40k tokens, and the preflight refuses
+# it rather than let Ollama truncate silently. A 40k window on an 8B model needs
+# roughly 10 GB and would spill heavily to CPU.
+#
+# 10 is the largest budget whose worst case (~9.9k prompt + 1.5k response) fits
+# the 12288-token window actually served. It is non-binding in practice: the
+# budget-5 baseline averages 2.19 tool calls per episode and the budget-2 arm
+# averages 1.77, so the agent stops of its own accord well before either ceiling.
+# Report this arm as "budget 10", never as "unlimited".
+mode: function_calling
+tool_budget: 10
+max_steps: 14
+temperature: 0.0
+seed: 12345

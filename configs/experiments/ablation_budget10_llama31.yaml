@@ -1,0 +1,15 @@
+# Ablation: raise the tool budget from 5 to 10. Runs on DEV, paired with
+# headline_llama31 (same seed, same questions) so McNemar applies.
+#
+# Replaces an ablation_budget_unlimited arm that could not run: at 50 calls the
+# worst-case prompt is ~40k tokens and the preflight refuses it rather than let
+# Ollama truncate silently. 10 is the largest budget that fits the served 12288
+# window, and is non-binding anyway -- the baseline averages 2.19 calls of its 5.
+experiment_id: ablation_budget10_llama31
+model: llama31_8b_ollama
+agent: budget10
+retrieval: bm25
+datasets: [pubmedqa, medqa]
+split: dev
+limit: 300
+notes: "Tool budget 10 (not unlimited: 50 overflows 8GB VRAM). Paired with headline_llama31."
