@@ -1,6 +1,6 @@
 | Experiment | Model | Dataset | N | Answered | Accuracy (95% CI) | Hit@k | Tool P/R |
 |---|---|---|---|---|---|---|---|
-| headline_llama31 | llama3.1:8b | medqa | 255 | 239 | 61.1% [54.8%, 67.4%] | n/a | 100.0% / 86.8% (n=19) |
-| headline_llama31 | llama3.1:8b | pubmedqa | 300 | 300 | 63.3% [57.3%, 68.7%] | 94.7% | 98.3% / 97.8% (n=300) |
-| headline_qwen3 | qwen3:8b | medqa | 255 | 236 | 76.3% [70.8%, 81.8%] | n/a | 100.0% / 10.5% (n=19) |
-| headline_qwen3 | qwen3:8b | pubmedqa | 300 | 299 | 49.5% [43.8%, 55.2%] | 79.7% | 100.0% / 82.5% (n=300) |
+| final_llama31 | llama31-8k:8b | medqa | 300 | 291 | 58.1% [52.2%, 63.6%] | n/a | 95.0% / 90.5% (n=21) |
+| final_llama31 | llama31-8k:8b | pubmedqa | 300 | 300 | 58.7% [53.0%, 64.0%] | 95.3% | 98.3% / 97.7% (n=300) |
+| final_qwen3 | qwen3-8k:8b | medqa | 300 | 277 | 76.5% [71.5%, 81.2%] | n/a | n/a (n=21, no tools used) |
+| final_qwen3 | qwen3-8k:8b | pubmedqa | 300 | 300 | 45.7% [40.3%, 51.3%] | 79.3% | 100.0% / 81.0% (n=300) |
