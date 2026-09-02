@@ -1,0 +1,11 @@
+# Ablation. Runs on DEV so the single test-split touch stays the headline run.
+# Identical to the dev baseline except for the agent config, and seeded the same,
+# so the same questions are used and the comparison is paired (McNemar applies).
+experiment_id: ablation_closedbook_qwen3
+model: qwen3_8b_ollama
+agent: closed_book
+retrieval: bm25
+datasets: [pubmedqa, medqa]
+split: dev
+limit: 300
+notes: "Closed-book ablation: no tools at all. Paired with headline_qwen3 (same seed, same 300 questions per dataset) so the comparison is per-question."

@@ -77,6 +77,22 @@ def main(argv: list[str] | None = None) -> None:
     p_judge.add_argument("--sample", type=int, default=40)
     p_judge.add_argument("--out", default="results/tables/judge_check.md")
 
+    p_abl = sub.add_parser(
+        "ablation", help="paired comparison of an ablation arm against its baseline"
+    )
+    p_abl.add_argument("--baseline", required=True, help="baseline experiment_id")
+    p_abl.add_argument(
+        "--variants", required=True, nargs="+", help="one or more variant experiment_id(s)"
+    )
+    p_abl.add_argument("--out", default="results/tables/ablations.md")
+    p_abl.add_argument(
+        "--no-borrow",
+        action="store_true",
+        help="do not score an evidence-less arm against the baseline's evidence. Without "
+        "borrowing, a closed-book arm is 100%% unsupported by construction, which measures "
+        "the ablation rather than the agent.",
+    )
+
     p_score = sub.add_parser(
         "annotate-score", help="compute Cohen's kappa between a completed annotation CSV and the classifier"
     )
@@ -110,6 +126,8 @@ def main(argv: list[str] | None = None) -> None:
         _run_annotate_command(args)
     elif args.command == "judge-check":
         _run_judge_check_command(args)
+    elif args.command == "ablation":
+        _run_ablation_command(args)
     elif args.command == "annotate-score":
         _run_annotate_score_command(args)
 
@@ -171,6 +189,56 @@ def _run_annotate_command(args: argparse.Namespace) -> None:
         "anything the classifier said -- that's what makes 'blind' mean something.\n"
         "When done: cra annotate-score --experiments ... --annotations " + str(csv_path)
     )
+
+
+def _run_ablation_command(args: argparse.Namespace) -> None:
+    from pathlib import Path
+
+    from cra.eval.ablation import compare, render_table
+    from cra.trace_io import read_trace_dir
+
+    entailment = _build_nli_checker()
+    baseline = read_trace_dir(f"results/traces/{args.baseline}")
+    if not baseline:
+        raise SystemExit(f"no traces found for baseline {args.baseline!r}")
+
+    comparisons = []
+    for variant_id in args.variants:
+        variant = read_trace_dir(f"results/traces/{variant_id}")
+        if not variant:
+            print(f"skipping {variant_id!r}: no traces found")
+            continue
+        result = compare(baseline, variant, entailment, borrow_evidence=not args.no_borrow)
+        comparisons.append((variant_id, result))
+
+        p = result.p_value
+        print("")
+        print(f"{variant_id} vs {args.baseline}")
+        print(f"  paired on {result.n_paired} question(s)")
+        print(
+            f"  accuracy {result.baseline.accuracy:.1%} -> {result.variant.accuracy:.1%} "
+            f"({result.accuracy_delta:+.1%}), McNemar b={result.b} c={result.c} "
+            f"p={'n/a' if p is None else round(p, 4)}"
+        )
+        print(
+            f"  traces with an unsupported claim "
+            f"{result.baseline.hallucination_rate_traces:.1%} -> "
+            f"{result.variant.hallucination_rate_traces:.1%} "
+            f"({result.hallucination_delta:+.1%})"
+        )
+        print(
+            f"  claims entailed {result.baseline.grounding_rate_claims:.1%} -> "
+            f"{result.variant.grounding_rate_claims:.1%}"
+        )
+        for note in result.notes:
+            print(f"  note: {note}")
+
+    if comparisons:
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(render_table(comparisons) + "\n", encoding="utf-8")
+        print("")
+        print(f"Wrote {out}")
 
 
 def _run_annotate_score_command(args: argparse.Namespace) -> None:

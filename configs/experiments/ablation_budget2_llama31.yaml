@@ -1,0 +1,11 @@
+# Ablation. Runs on DEV so the single test-split touch stays the headline run.
+# Identical to the dev baseline except for the agent config, and seeded the same,
+# so the same questions are used and the comparison is paired (McNemar applies).
+experiment_id: ablation_budget2_llama31
+model: llama31_8b_ollama
+agent: budget2
+retrieval: bm25
+datasets: [pubmedqa, medqa]
+split: dev
+limit: 300
+notes: "Tool budget 2 instead of 5. Paired with headline_llama31."
