@@ -17,7 +17,7 @@ mode entirely (docs/DESIGN.md Sec 7).
 from __future__ import annotations
 
 from cra.eval.entailment.base import EntailmentLabel
-from cra.eval.entailment.cache import DEFAULT_CACHE_PATH, EntailmentCache, verdict_key
+from cra.eval.entailment.cache import DEFAULT_CACHE_PATH, EntailmentCache, score_key
 
 _MISSING_EXTRA = (
     "NLI entailment requires the 'dense' extra. Install with: python tasks.py setup --extras dev,dense (not a bare pip -- it may belong to a different Python, and a uv-created venv has no pip) "
@@ -98,17 +98,20 @@ class NLIEntailmentChecker:
                 )
         return out
 
-    def check(self, claim: str, evidence_texts: list[str]) -> EntailmentLabel:
-        if not evidence_texts:
-            return "not_addressed"
+    def score(self, claim: str, evidence_texts: list[str]) -> tuple[float, float]:
+        """``(max_entail, max_contradict)`` over the premises, cached.
 
-        key = verdict_key(
-            self.name, self.model_name, self.entail_threshold, self.contradict_threshold,
-            claim, evidence_texts,
-        )
-        cached = self.cache.get(key)
+        Scores rather than labels are the cached unit: they do not depend on the
+        thresholds, so a threshold sweep reads them instead of re-running the
+        model. That is what makes calibration cheap enough to do at all.
+        """
+        if not evidence_texts:
+            return 0.0, 0.0
+
+        key = score_key(self.name, self.model_name, claim, evidence_texts)
+        cached = self.cache.get_scores(key)
         if cached is not None:
-            return cached  # type: ignore[return-value]
+            return cached
 
         best_entail = best_contradict = 0.0
         for scores in self._label_scores_batch(evidence_texts, claim):
@@ -117,15 +120,27 @@ class NLIEntailmentChecker:
             best_entail = max(best_entail, entail)
             best_contradict = max(best_contradict, contradict)
 
-        if best_entail > self.entail_threshold:
-            label: EntailmentLabel = "entailed"
-        elif best_contradict > self.contradict_threshold:
-            label = "contradicted"
-        else:
-            label = "not_addressed"
+        self.cache.put_scores(key, best_entail, best_contradict)
+        return best_entail, best_contradict
 
-        self.cache.put(key, label)
-        return label
+    @staticmethod
+    def label_from_scores(
+        entail: float, contradict: float, entail_threshold: float, contradict_threshold: float
+    ) -> EntailmentLabel:
+        """The decision rule, isolated so a sweep applies exactly what check() does."""
+        if entail > entail_threshold:
+            return "entailed"
+        if contradict > contradict_threshold:
+            return "contradicted"
+        return "not_addressed"
+
+    def check(self, claim: str, evidence_texts: list[str]) -> EntailmentLabel:
+        if not evidence_texts:
+            return "not_addressed"
+        entail, contradict = self.score(claim, evidence_texts)
+        return self.label_from_scores(
+            entail, contradict, self.entail_threshold, self.contradict_threshold
+        )
 
     def flush(self) -> None:
         """Commit cached verdicts. Safe to call repeatedly."""

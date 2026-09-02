@@ -37,7 +37,12 @@ class ModelConfig:
 
 @dataclass(frozen=True)
 class AgentConfig:
-    mode: Literal["function_calling", "react"] = "function_calling"
+    # Only native function calling is implemented. A "react" option was declared
+    # here and never built: the loop never branched on it, so setting it would
+    # have silently produced function-calling traces labelled as ReAct. Removing
+    # the option is more honest than leaving a setting that does nothing, and a
+    # config naming it now fails loudly instead.
+    mode: Literal["function_calling"] = "function_calling"
     tool_budget: int = 5
     max_steps: int = 8
     temperature: float = 0.0
@@ -49,6 +54,21 @@ class AgentConfig:
     enable_calculators: bool = True
     enable_drugs: bool = True
     enable_units: bool = True
+
+    def __post_init__(self) -> None:
+        # A Literal annotation is a type hint, not a runtime check: without this,
+        # mode="react" would be accepted, recorded on every trace, and silently
+        # produce function-calling episodes labelled as something else.
+        if self.mode != "function_calling":
+            raise ValueError(
+                f"unsupported agent mode {self.mode!r}. Only 'function_calling' is "
+                "implemented; a 'react' mode was declared but never built, and the loop "
+                "never branched on it."
+            )
+        if self.tool_budget < 0:
+            raise ValueError(f"tool_budget must be >= 0, got {self.tool_budget}")
+        if self.max_steps < 1:
+            raise ValueError(f"max_steps must be >= 1, got {self.max_steps}")
 
 
 @dataclass(frozen=True)
