@@ -1,0 +1,16 @@
+# The 30 hand-curated adversarial items. Each pairs a clinical vignette with a
+# plausible-sounding distractor the corpus does not support, so it is a direct
+# stress test of the grounding checker rather than of accuracy: the question is
+# whether an agent that takes the trap also asserts it, and whether the checker
+# catches the assertion.
+#
+# Answer positions are balanced (gold A8 B8 C7 D7) so a positional bias cannot
+# masquerade as trap resistance.
+experiment_id: trapset_llama31
+model: llama31_8b_ollama
+agent: fc
+retrieval: bm25
+datasets: [trapset]
+split: dev
+limit: 30
+notes: "Adversarial trap set, llama31. Stress-tests the hallucination detector."
