@@ -212,13 +212,15 @@ def _run_ablation_command(args: argparse.Namespace) -> None:
         comparisons.append((variant_id, result))
 
         p = result.p_value
+        # Never round a p-value into "0.0": a genuinely tiny value must stay
+        # legible as tiny rather than be reported as exactly zero.
+        p_str = "n/a" if p is None else (f"{p:.4f}" if p >= 1e-4 else f"{p:.2e}")
         print("")
         print(f"{variant_id} vs {args.baseline}")
         print(f"  paired on {result.n_paired} question(s)")
         print(
             f"  accuracy {result.baseline.accuracy:.1%} -> {result.variant.accuracy:.1%} "
-            f"({result.accuracy_delta:+.1%}), McNemar b={result.b} c={result.c} "
-            f"p={'n/a' if p is None else round(p, 4)}"
+            f"({result.accuracy_delta:+.1%}), McNemar b={result.b} c={result.c} p={p_str}"
         )
         print(
             f"  traces with an unsupported claim "

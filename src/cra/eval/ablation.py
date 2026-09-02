@@ -210,7 +210,13 @@ def render_table(comparisons: list[tuple[str, PairedAblation]]) -> str:
         base_acc = f"{cmp.baseline.accuracy:.1%}" if cmp.baseline.accuracy is not None else "n/a"
         var_acc = f"{cmp.variant.accuracy:.1%}" if cmp.variant.accuracy is not None else "n/a"
         d_acc = f"{cmp.accuracy_delta:+.1%}" if cmp.accuracy_delta is not None else "n/a"
-        p = "n/a" if cmp.p_value is None else (f"{cmp.p_value:.3f}" if cmp.p_value >= 0.001 else "<0.001")
+        # A tiny p-value stays legible as tiny; rounding it to 0.000 would read
+        # as exactly zero, which no test reports.
+        p = (
+            "n/a"
+            if cmp.p_value is None
+            else (f"{cmp.p_value:.3f}" if cmp.p_value >= 0.001 else f"{cmp.p_value:.1e}")
+        )
         base_h = cmp.baseline.hallucination_rate_traces
         var_h = cmp.variant.hallucination_rate_traces
         h = f"{base_h:.1%} -> {var_h:.1%}" if base_h is not None and var_h is not None else "n/a"
