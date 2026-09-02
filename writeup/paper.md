@@ -139,6 +139,40 @@ the retrieved evidence:
 **74.4% combined on PubMedQA.** At the claim level, only 20–24% of extracted claims are
 entailed by any retrieved passage.
 
+That figure uses the default entailment cut of 0.5. Calibrating the cut non-circularly —
+fitted on the development annotation pass, reported on the disjoint held-out pass —
+selects 0.95 and improves held-out kappa from 0.737 to 0.771. At that cut the figure is
+90.1%. We report the range **74–90%** and do not adopt the calibrated cut, because the
+calibration is severely underpowered: of 24 threshold-sensitive held-out traces exactly
+one changes label between the two cuts, so a 16-point movement in the headline rests on
+a single trace. All three label flips across both passes moved toward the human label,
+so the direction is consistent; the magnitude is not identified by 80 annotations.
+Pinning it would need roughly 150–200 labels concentrated on correct answers, where the
+threshold actually bites.
+
+### 4.2.1 Removing tools degrades accuracy and grounding together
+
+The obvious objection to the grounding result is that retrieval might be decorative:
+if the model ignores what it fetches, of course its justification is not entailed by it.
+A closed-book ablation rules this out. Paired on the same questions, with closed-book
+claims scored against the passages the tool-using run retrieved for the same question:
+
+| | accuracy (PubMedQA) | claims entailed | traces with an unsupported claim |
+|---|---|---|---|
+| qwen3, tools | 49.5% | 22.0% | 79.8% |
+| qwen3, closed-book | 31.7% (p = 3 × 10⁻⁷) | 11.4% | 93.2% |
+| llama3.1, tools | 63.3% | 24.0% | 85.2% |
+| llama3.1, closed-book | 47.3% (p = 4 × 10⁻⁹) | 13.6% | 93.7% |
+
+Retrieval is worth 16–18 accuracy points and roughly doubles the share of entailed
+claims, replicated independently on both models. The evidence is demonstrably used. The
+finding is therefore not that retrieval fails, but that it succeeds and the stated
+reasoning is still not a faithful account of it.
+
+On MedQA the same ablation shows no significant accuracy effect (+4.0pp and −1.5pp, both
+n.s.), which is what a corpus that does not cover USMLE vignettes should produce. That
+dataset functions as a negative control for retrieval quality.
+
 We report PubMedQA as the headline because it is where the measure means what it says:
 Hit@k is 79–95%, so relevant evidence is genuinely in hand. The MedQA figures should not
 be read as a fabrication rate. The corpus is built from PubMedQA abstracts and does not
@@ -209,10 +243,10 @@ Two 8B open-weight models is a weaker generalisation claim than open-weight vers
 it shows a failure profile is not one model's quirk, but says nothing about how the profile
 changes with capability. The `expected_tools` oracle is a keyword rule whose own error rate
 is uncharacterised, so tool precision/recall are reported against the oracle rather than
-against ground truth. NLI thresholds sit at their 0.5 default; calibrating them on the
-annotation labels would have fitted the classifier to its own validation set, so it was not
-done, and the residual `correct_grounded`/`unsupported_claim` disagreements are partly
-attributable to that. The second annotation pass was not blind to feedback from the first,
+against ground truth. The entailment threshold is calibrated non-circularly but not
+adopted: the fitted cut improves held-out kappa, yet one held-out trace separates the two
+cuts while the headline moves 16 points, so the magnitude of the grounding result is
+reported as a range rather than a point estimate. The second annotation pass was not blind to feedback from the first,
 and used a single annotator who is not a clinician — inter-annotator agreement is therefore
 unmeasured. Finally, the retrieval corpus is small and topically mismatched to MedQA, which
 is why MedQA grounding figures are reported as a coverage artifact rather than a headline.

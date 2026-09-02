@@ -8,7 +8,7 @@ The evaluation framework is the contribution. The agent exists to generate trace
 
 ## Headline result
 
-> Across two open-weight models on PubMedQA, **74.4% of *correct* answers contain at
+> Across two open-weight models on PubMedQA, **74–90% of *correct* answers contain at
 > least one claim not entailed by the evidence retrieved to justify it.**
 
 Accuracy cannot see this. An agent that answers correctly while inventing its
@@ -16,6 +16,18 @@ justification scores as a clean win on every standard benchmark.
 
 The failure-mode classifier that produces this number is validated against blind human
 annotation at **Cohen's kappa = 0.737** (82.5% agreement, n=40, held out).
+
+The range is a stated uncertainty, not hedging. 74.4% is the figure at the default
+entailment cut of 0.5; a cut calibrated on one annotation pass and reported on a
+disjoint one (kappa 0.737 → 0.771) gives 90.1%. The calibrated cut is **not** adopted,
+because only 1 of 24 threshold-sensitive held-out traces changes label between the two
+— the direction of the finding is robust to the threshold, its magnitude is not pinned
+down by 80 annotations. See `results/tables/calibration.md`.
+
+Removing tools entirely makes it worse on both counts, which rules out the obvious
+objection that retrieval is decorative: accuracy falls 16–18 points on PubMedQA
+(p < 10⁻⁷, both models) and the share of entailed claims roughly halves. The evidence is
+demonstrably used — and the justification still is not a faithful account of it.
 
 ![Failure-mode breakdown](results/figures/failure_modes.png)
 
@@ -145,9 +157,13 @@ rather than fitting the labels that prompted them.
 - **The `expected_tools` oracle is a keyword rule**, not ground truth. Tool
   precision/recall are reported against the oracle, and its own error rate is not
   characterised.
-- **NLI thresholds were never calibrated.** They sit at the 0.5 default. Calibrating them
-  on the annotation labels would have fitted the classifier to its own validation set, so
-  it was not done.
+- **The entailment threshold is not pinned down.** It is calibrated non-circularly
+  (fitted on the development annotation pass, reported on the disjoint held-out pass) and
+  the fitted cut of 0.95 improves held-out kappa from 0.737 to 0.771. It is nonetheless
+  left at the 0.5 default, because only 1 of 24 threshold-sensitive held-out traces
+  changes label between the two cuts while the headline moves 16 points. Pinning the
+  magnitude would need roughly 150–200 labelled traces concentrated on correct answers,
+  not 80 spread across all outcomes.
 - **The second annotation pass was not blind to feedback** from the first, and used a
   single annotator who is not a clinician.
 - **`AgentConfig.mode == "react"` is declared but not implemented.** The loop uses native

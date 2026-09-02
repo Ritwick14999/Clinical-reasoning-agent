@@ -77,6 +77,16 @@ def main(argv: list[str] | None = None) -> None:
     p_judge.add_argument("--sample", type=int, default=40)
     p_judge.add_argument("--out", default="results/tables/judge_check.md")
 
+    p_cal = sub.add_parser(
+        "calibrate",
+        help="sensitivity of the failure-mode labels to the entailment threshold, "
+        "fitted on one annotation pass and reported on a disjoint one",
+    )
+    p_cal.add_argument("--experiments", required=True, nargs="+")
+    p_cal.add_argument("--dev", required=True, help="annotation CSV to fit on")
+    p_cal.add_argument("--heldout", required=True, help="disjoint annotation CSV to report on")
+    p_cal.add_argument("--out", default="results/tables/calibration.md")
+
     p_abl = sub.add_parser(
         "ablation", help="paired comparison of an ablation arm against its baseline"
     )
@@ -126,6 +136,8 @@ def main(argv: list[str] | None = None) -> None:
         _run_annotate_command(args)
     elif args.command == "judge-check":
         _run_judge_check_command(args)
+    elif args.command == "calibrate":
+        _run_calibrate_command(args)
     elif args.command == "ablation":
         _run_ablation_command(args)
     elif args.command == "annotate-score":
@@ -189,6 +201,73 @@ def _run_annotate_command(args: argparse.Namespace) -> None:
         "anything the classifier said -- that's what makes 'blind' mean something.\n"
         "When done: cra annotate-score --experiments ... --annotations " + str(csv_path)
     )
+
+
+def _run_calibrate_command(args: argparse.Namespace) -> None:
+    import csv as _csv
+    from pathlib import Path
+
+    from cra.eval.calibrate import calibrate, render_report, score_traces
+    from cra.trace_io import read_trace_dir
+
+    def _labels(path: str) -> dict[str, str]:
+        with open(path, newline="", encoding="utf-8") as fh:
+            return {
+                row["trace_id"]: row["human_label"].strip()
+                for row in _csv.DictReader(fh)
+                if (row.get("human_label") or "").strip()
+            }
+
+    dev_human = _labels(args.dev)
+    heldout_human = _labels(args.heldout)
+    overlap = set(dev_human) & set(heldout_human)
+    if overlap:
+        # Fitting and reporting on the same traces would tune the classifier to
+        # its own validation set, which is the whole reason this is split.
+        raise SystemExit(
+            f"{len(overlap)} trace(s) appear in both annotation sets; they must be disjoint "
+            "for the reported figure to be out of sample."
+        )
+
+    checker = _build_nli_checker()
+    traces = [t for e in args.experiments for t in read_trace_dir(f"results/traces/{e}")]
+    dev_scored = score_traces(traces, checker, trace_ids=set(dev_human))
+    heldout_scored = score_traces(traces, checker, trace_ids=set(heldout_human))
+    checker.flush()
+
+    result = calibrate(dev_scored, dev_human, heldout_scored, heldout_human)
+
+    # How many labels the threshold can actually move decides whether the fitted
+    # cut is identified at all, so it is reported rather than left implicit.
+    flips = {
+        name: sum(
+            1 for s in scored if s.label_at(result.default_entail) != s.label_at(result.best_entail)
+        )
+        for name, scored in (("dev", dev_scored), ("held-out", heldout_scored))
+    }
+    sensitive = {
+        name: sum(1 for s in scored if s.fixed_label is None)
+        for name, scored in (("dev", dev_scored), ("held-out", heldout_scored))
+    }
+
+    report = render_report(result)
+    identification = (
+        f"\nIdentification: of {sensitive['dev']} threshold-sensitive dev traces "
+        f"{flips['dev']} change label between the two cuts, and of "
+        f"{sensitive['held-out']} held-out traces {flips['held-out']} do. The kappa "
+        "difference therefore rests on a handful of traces, so the fitted cut is "
+        "reported as a sensitivity analysis and NOT adopted as the default: the "
+        "direction of the finding is robust to the threshold, its magnitude is not "
+        "pinned down by this many annotations."
+    )
+    print(report)
+    print(identification)
+
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(report + "\n" + identification + "\n", encoding="utf-8")
+    print("")
+    print(f"Wrote {out}")
 
 
 def _run_ablation_command(args: argparse.Namespace) -> None:
